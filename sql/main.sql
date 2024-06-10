@@ -1,0 +1,1 @@
+SELECT * FROM omop.cdm LIMIT 10;
