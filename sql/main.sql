@@ -5,6 +5,7 @@ SELECT TOP 1000
 	DATEFROMPARTS(year_of_birth, month_of_birth, day_of_birth) as dob,
 	race_c.concept_name as race,
 	ethnicity_c.concept_name as ethnicity,
+	xtn_preferred_language_source_concept_name as preferred_language,
 	p.xtn_patient_epic_mrn as mrn
 INTO #Demographics
 FROM omop.cdm_phi.person p 
