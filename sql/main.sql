@@ -25,7 +25,19 @@ SELECT TOP 1000
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3038553)
 
-DROP TABLE IF EXISTS #Hgb;
+DROP TABLE IF EXISTS #Hgb_all;
+SELECT TOP 1000
+	person_id as pt_id,
+	measurement_concept_id as hgball_id,
+	measurement_source_value as hgball_textid,
+	measurement_date as hgball_date,
+	value_as_number as hgball_num,
+	value_source_value as hgball_value,
+	unit_concept_code as hgball_unit
+FROM omop.cdm_phi.measurement
+WHERE measurement_concept_id IN (1616317, 3000963, 3004119, 3006239, 3002173, 46235392)
+
+DROP TABLE IF EXISTS #Hgb_clean;
 SELECT TOP 1000
 	person_id as pt_id,
 	measurement_concept_id as hgb_id,
@@ -35,4 +47,4 @@ SELECT TOP 1000
 	value_source_value as hgb_value,
 	unit_concept_code as hgb_unit
 FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (1616317, 3000963, 3004119, 3006239, 3002173, 46235392)
+WHERE measurement_concept_id IN (3000963, 3006239)
