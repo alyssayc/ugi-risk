@@ -24,3 +24,15 @@ SELECT TOP 1000
 	unit_concept_code as bmi_unit
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3038553)
+
+DROP TABLE IF EXISTS #Hgb;
+SELECT TOP 1000
+	person_id as pt_id,
+	measurement_concept_id as hgb_id,
+	measurement_source_value as hgb_textid,
+	measurement_date as hgb_date,
+	value_as_number as hgb_num,
+	value_source_value as hgb_value,
+	unit_concept_code as hgb_unit
+FROM omop.cdm_phi.measurement
+WHERE measurement_concept_id IN (1616317, 3000963, 3004119, 3006239, 3002173, 46235392)
