@@ -19,8 +19,30 @@ INNER JOIN omop.cdm_phi.concept ethnicity_c ON ethnicity_c.concept_id = p.ethnic
 WHERE year_of_birth BETWEEN '1960' and '1961' -- delete me 
 
 /*
+* Encounters. Determines the index time for temporal data. 
+*/
+
+DROP TABLE IF EXISTS #Encounters;
+SELECT
+	visit_occurrence_id as visit_id,
+	person_id as pt_id,
+	xtn_epic_encounter_number,
+	etl_epic_encounter_key,
+	xtn_visit_type_source_concept_name as encounter_type,
+	visit_start_date,
+	visit_end_date,
+	DATEADD(month, -6, visit_start_date) AS visit_start_date_minus_6mo,
+	DATEADD(month, -9, visit_start_date) AS visit_start_date_minus_9mo,
+	DATEADD(month, -12, visit_start_date) AS visit_start_date_minus_12mo,
+	DATEADD(month, -18, visit_start_date) AS visit_start_date_minus_18mo
+INTO #Encounters 
+FROM omop.cdm_phi.visit_occurrence e
+WHERE xtn_visit_type_source_concept_name IN ('Telehealth Visit', 'Outpatient Visit', 'Hospital Outpatient Visit', 'Inpatient Hospitalization', 'Inpatient Hospitalization from ED Visit', 'ED Visit')
+AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND visit_start_date BETWEEN '1974-06-01' AND '2023-03-30' 
+
+/*
  * Measurement tables 
- * To troubleshoot, limit to >2021 
  */
 
 DROP TABLE IF EXISTS #BMI;
@@ -37,6 +59,7 @@ FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id = 3038553
 AND measurement_date BETWEEN '2021-01-01' AND '2023-03-30' -- delete me 
 
+-- Includes blood gas hemoglobins
 DROP TABLE IF EXISTS #Hgb_all;
 SELECT 
 	person_id as pt_id,
@@ -51,6 +74,7 @@ FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (1616317, 3000963, 3004119, 3006239, 3002173, 46235392)
 AND measurement_date BETWEEN '2021-01-01' AND '2023-03-30' -- delete me 
 
+-- Excludes blood gas hemoglobins
 DROP TABLE IF EXISTS #Hgb;
 SELECT 
 	person_id as pt_id,
@@ -65,7 +89,7 @@ FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3000963, 3006239)
 AND measurement_date BETWEEN '2021-01-01' AND '2023-03-30' -- delete me 
 
-DROP TABLE IF EXISTS #Hpylori;
+DROP TABLE IF EXISTS #Hpylori_all;
 SELECT 
 	person_id as pt_id,
 	measurement_concept_id as hpylori_id,
@@ -74,17 +98,17 @@ SELECT
 	value_as_number as hpylori_num,
 	value_source_value as hpylori_value,
 	unit_concept_code as hpylori_unit,
-	range_high,
-	range_low,
+	range_high as hpylori_range_high,
+	range_low as hpylori_range_low,
 	CASE 
-		WHEN value_as_number IS NOT NULL and value_as_number > range_high THEN 'high'
-		WHEN value_as_number IS NOT NULL and value_as_number <= range_high THEN 'not high'
-		WHEN value_as_number IS NOT NULL and range_high IS NULL THEN 'no range' -- 'H.PYLORI IGG INDEX', 'H. PYLORI IGA', 'H. PYLORI, IGM AB'
+		WHEN value_as_number IS NOT NULL AND value_as_number > range_high THEN 'high'
+		WHEN value_as_number IS NOT NULL AND value_as_number <= range_high THEN 'not high'
+		WHEN value_as_number IS NOT NULL AND range_high IS NULL THEN 'no range' -- 'H.PYLORI IGG INDEX', 'H. PYLORI IGA', 'H. PYLORI, IGM AB'
 		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%duplicate%' THEN 'error'
 		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%equivocal%' THEN 'not high'
 		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not sufficient%' THEN 'error'
 		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not performed%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%see%' THEN 'error' -- see below or see note
+		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%see%' THEN 'error' -- ie. see below or see note
 		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no specimen%' THEN 'error'
 		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%incorrect%' THEN 'error'
 		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%inappropriate%' THEN 'error'
@@ -108,40 +132,46 @@ SELECT
 		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%discrepancy%' THEN 'error'
 		ELSE value_source_value 
 	END AS hpylori_result
-INTO #Hpylori
+INTO #Hpylori_all
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3007894, 3016100, 3027491, 3023871, 3018195, 36304847, 3013139, 3010921, 3011630, 3016410)
 AND measurement_date BETWEEN '2021-01-01' AND '2023-03-30' -- delete me 
 
+DROP TABLE IF EXISTS #Hpylori_hx;
+SELECT 
+	pt_id,
+	MIN(hpylori_date) as hpylori_dx_date,
+	MAX(CASE 
+		WHEN hpylori_result IS 'high' THEN 1
+		WHEN hpylori_result IS 'not high' THEN 0 
+		WHEN hpylori_result IS 'error' THEN -1 
+		ELSE -2 -- if there are a lot of -2s then might be worth the time to go back and clean up the extra values a bit more
+	END) AS hpylori_hx
+INTO #Hpylori_hx
+FROM #Hpylori_all 
+GROUP BY pt_id 
+
+DROP TABLE IF EXISTS #Hpylori_active;
+SELECT 
+	pt_id,
+	MIN(hpylori_date) as hpylori_active_date,
+	MAX(CASE 
+		WHEN hpylori_result IS 'high' THEN 1
+		WHEN hpylori_result IS 'not high' THEN 0 
+		WHEN hpylori_result IS 'error' THEN -1 
+		ELSE -2 -- if there are a lot of -2s then might be worth the time to go back and clean up the extra values a bit more
+	END) AS hpylori_active
+INTO #Hpylori_active
+FROM #Hpylori_all 
+-- active infection (IgM, stool Ag, IgA, urea breath)
+WHERE hpylori_id IN (3007894, 3016100, 3018195, 36304847, 3013139, 3010921, 3011630, 3016410)
+GROUP BY pt_id 
 
 /* 
- * Generate temporary tables to get baseline and prior data 
+ * Generate temporary tables to get baseline and prior data by creating Common Table Expressions.
  */
 
-DROP TABLE IF EXISTS #Encounters;
-SELECT
-	visit_occurrence_id as visit_id,
-	person_id as pt_id,
-	xtn_epic_encounter_number,
-	etl_epic_encounter_key,
-	xtn_visit_type_source_concept_name as encounter_type,
-	visit_start_date,
-	visit_end_date,
-	DATEADD(month, -6, visit_start_date) AS visit_start_date_minus_6mo,
-	DATEADD(month, -9, visit_start_date) AS visit_start_date_minus_9mo,
-	DATEADD(month, -12, visit_start_date) AS visit_start_date_minus_12mo,
-	DATEADD(month, -18, visit_start_date) AS visit_start_date_minus_18mo
-INTO #Encounters 
-FROM omop.cdm_phi.visit_occurrence e
-WHERE xtn_visit_type_source_concept_name IN ('Telehealth Visit', 'Outpatient Visit', 'Hospital Outpatient Visit', 'Inpatient Hospitalization', 'Inpatient Hospitalization from ED Visit', 'ED Visit')
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
--- AND visit_start_date BETWEEN '1974-06-01' AND '2023-03-30' 
--- filter by age >= 30 
--- AND visit_start_date >= DATEADD(year, 30, (SELECT DATEFROMPARTS(year_of_birth, month_of_birth, day_of_birth) as dob FROM omop.cdm_phi.person p WHERE p.person_id = e.person_id))
-
--- Create a Common Table Expressions to efficiently get baseline and priors 
-
--- Get all BMIs within 6 months of the visit date and order by the value closest to the visit date 
+-- Get all BMIs within 6 months prior to the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #BMI_baseline;
 SELECT e.visit_id,
 	e.pt_id,
@@ -155,7 +185,6 @@ FROM #Encounters e
 JOIN #BMI b 
 	ON e.pt_id = b.pt_id 
 	AND b.bmi_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
-
 
 -- Get all BMIs within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #BMI_prior;
@@ -172,8 +201,7 @@ JOIN #BMI b
 	ON e.pt_id = b.pt_id 
 	AND b.bmi_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
 
-
--- Get all Hgballs within 6 months of the visit date and order by the value closest to the visit date 
+-- Get all Hgballs within 6 months prior to the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Hgball_baseline;
 SELECT e.visit_id,
 	e.pt_id,
@@ -203,7 +231,7 @@ JOIN #Hgb_all b
 	ON e.pt_id = b.pt_id 
 	AND b.hgball_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
 
--- Get all Hgbs within 6 months of the visit date and order by the value closest to the visit date 
+-- Get all Hgbs within 6 months prior to the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Hgb_baseline;
 SELECT e.visit_id,
 	e.pt_id,
@@ -232,7 +260,6 @@ FROM #Encounters e
 JOIN #Hgb b
 	ON e.pt_id = b.pt_id 
 	AND b.hgb_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
-
 
 /*
  * Final table creation 
@@ -283,6 +310,11 @@ SELECT
 	hp.hgb_value AS hgb_prior_val,
 	hp.hgb_date AS hgb_prior_date
 
+	hhx.hpylori_dx_date,
+	hhx.hpylori_hx,
+	hactive.hpylori_active_date,
+	hactive.hpylori_active
+
 FROM #Encounters e
 JOIN #Demographics d ON e.pt_id = d.pt_id
 LEFT JOIN #BMI_baseline b ON e.visit_id = b.visit_id AND b.rn=1
@@ -291,3 +323,5 @@ LEFT JOIN #Hgball_baseline hab ON e.visit_id = hab.visit_id AND hab.rn=1
 LEFT JOIN #Hgball_prior hap ON e.visit_id = hap.visit_id AND hap.rn=1 
 LEFT JOIN #Hgb_baseline hb ON e.visit_id = hb.visit_id AND hb.rn=1
 LEFT JOIN #Hgb_prior hp ON e.visit_id = hp.visit_id AND hp.rn=1
+LEFT JOIN #Hpylori_hx hhx ON e.pt_id = hhx.pt_id 
+LEFT JOIN #Hpylori_active hactive ON e.pt_id = hactive.pt_id
