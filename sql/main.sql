@@ -634,6 +634,99 @@ JOIN #Hgba1c b
 	AND b.hgba1c_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
 
 /*
+ * Comorbidities
+ */ 
+
+-- Multiple ICDs correspond to one SNOMED code. This table creates a dictionary for ICD/SNOMED mapping. 
+DROP TABLE IF EXISTS #ICD_dict;
+SELECT 
+     c1.concept_code AS icd10, 
+     c2.concept_code snomed
+INTO #ICD_dict
+FROM omop.cdm_phi.concept_relationship AS cr 
+INNER JOIN omop.cdm_phi.concept AS c1 ON cr.concept_id_1 = c1.concept_id
+INNER JOIN omop.cdm_phi.concept AS c2 ON cr.concept_id_2 = c2.concept_id
+WHERE cr.relationship_id = 'Maps to' AND c1.vocabulary_id = 'ICD10' AND c2.vocabulary_id = 'SNOMED'
+
+-- Peptic ulcer
+DROP TABLE IF EXISTS #PUD;
+SELECT 
+     person_id AS pt_id,
+     MIN(condition_start_date) AS pud_start_date,
+     1 AS pud
+INTO #PUD
+FROM omop.cdm_phi.condition_occurrence AS co
+INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
+WHERE id.snomed = '13200003' OR id.icd10 LIKE 'K25.%' OR id.icd10 LIKE 'K27.%'
+AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+GROUP BY person_id
+
+-- GERD
+DROP TABLE IF EXISTS #GERD
+SELECT 
+     person_id AS pt_id,
+     MIN(condition_start_date) AS gerd_start_date,
+     1 AS gerd
+INTO #GERD
+FROM omop.cdm_phi.condition_occurrence AS co
+INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
+WHERE id.snomed = '235595009' OR id.icd10 LIKE 'K21.%'
+AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+GROUP BY person_id
+
+-- H pylori 
+DROP TABLE IF EXISTS #Hpylori_ICD;
+SELECT 
+     person_id AS pt_id,
+     MIN(condition_start_date) AS hpylori_start_date,
+     1 AS hpylori
+INTO #Hpylori_ICD
+FROM omop.cdm_phi.condition_occurrence AS co
+INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
+WHERE id.snomed = '13200003' OR id.icd10 LIKE 'K25.%' OR id.icd10 LIKE 'K27.%'
+AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+GROUP BY person_id
+
+-- Coronary artery disease
+DROP TABLE IF EXISTS #CAD;
+SELECT 
+     person_id AS pt_id,
+     MIN(condition_start_date) AS cad_start_date,
+     1 AS cad
+INTO #CAD
+FROM omop.cdm_phi.condition_occurrence AS co
+INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
+WHERE id.snomed = '53741008' OR id.icd10 LIKE 'I25.%'
+AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+GROUP BY person_id
+
+-- Tobacco use 
+DROP TABLE IF EXISTS #Tobacco_ICD;
+SELECT 
+     person_id AS pt_id,
+     MIN(condition_start_date) AS tobacco_start_date,
+     1 AS tobacco
+INTO #Tobacco_ICD
+FROM omop.cdm_phi.condition_occurrence AS co
+INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
+WHERE id.snomed = '56294008' OR id.icd10 = 'Z72.0' OR id.icd10 LIKE 'F17.%'
+AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+GROUP BY person_id
+
+-- Alcohol use 
+DROP TABLE IF EXISTS #Alcohol_ICD;
+SELECT 
+     person_id AS pt_id,
+     MIN(condition_start_date) AS alcohol_start_date,
+     1 AS alcohol
+INTO #Alcohol_ICD
+FROM omop.cdm_phi.condition_occurrence AS co
+INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
+WHERE id.snomed = '66590003' OR id.icd10 LIKE 'F10.%'
+AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+GROUP BY person_id
+
+/*
  * Final table creation 
  */
 
@@ -745,8 +838,27 @@ SELECT
 	hhx.hpylori_dx_date,
 	hhx.hpylori_hx,
 	hactive.hpylori_active_date,
-	hactive.hpylori_active
+	hactive.hpylori_active,
 
+	-- Comorbidities
+	pud.pud_start_date,
+	pud.pud,
+
+	gerd.gerd_start_date,
+	gerd.gerd,
+
+	hpylori.hpylori_start_date,
+	hpylori.hpylori,
+
+	cad.cad_start_date,
+	cad.cad,
+	
+	tobacco.tobacco_start_date,
+	tobacco.tobacco,
+
+	alcohol.alcohol_start_date,
+	alcohol.alcohol
+	
 FROM #Encounters e
 JOIN #Demographics d ON e.pt_id = d.pt_id
 LEFT JOIN #BMI_baseline b ON e.visit_id = b.visit_id AND b.rn = 1
@@ -784,4 +896,9 @@ LEFT JOIN #Hgba1c_prior a1cp ON e.visit_id = a1cp.visit_id AND a1cp.rn=1
 LEFT JOIN #Hpylori_hx hhx ON e.pt_id = hhx.pt_id 
 LEFT JOIN #Hpylori_active hactive ON e.pt_id = hactive.pt_id
 
-ORDER BY pt_id, visit_start_date
+LEFT JOIN #PUD pud ON e.pt_id = pud.pt_id 
+LEFT JOIN #GERD gerd ON e.pt_id = gerd.pt_id 
+LEFT JOIN #Hpylori_ICD hpylori ON e.pt_id = hpylori.pt_id 
+LEFT JOIN #CAD cad ON e.pt_id = cad.pt_id 
+LEFT JOIN #Tobacco_ICD tobacco ON e.pt_id = tobacco.pt_id 
+LEFT JOIN #Alcohol_ICD alcohol ON e.pt_id = alcohol.pt_id 
