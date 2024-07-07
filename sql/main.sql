@@ -650,6 +650,62 @@ INNER JOIN omop.cdm_phi.concept AS c1 ON cr.concept_id_1 = c1.concept_id
 INNER JOIN omop.cdm_phi.concept AS c2 ON cr.concept_id_2 = c2.concept_id
 WHERE cr.relationship_id = 'Maps to' AND c1.vocabulary_id = 'ICD10' AND c2.vocabulary_id = 'SNOMED'
 
+-- Gastric cancer
+DROP TABLE IF EXISTS #GastricCa;
+SELECT 
+     person_id AS pt_id,
+     MIN(condition_start_date) AS gastricca_start_date,
+     1 AS gastricca
+INTO #GastricCa
+FROM omop.cdm_phi.condition_occurrence AS co
+INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
+WHERE id.snomed = '363349007' OR id.icd10 LIKE 'C16.%'
+AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+GROUP BY person_id
+
+-- Esophageal cancer
+DROP TABLE IF EXISTS #EsophagealCa;
+SELECT 
+     person_id AS pt_id,
+     MIN(condition_start_date) AS esophagealca_start_date,
+     1 AS esophagealca
+INTO #EsophagealCa
+FROM omop.cdm_phi.condition_occurrence AS co
+INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
+WHERE id.snomed = '126817006' OR id.icd10 LIKE 'C15.%'
+AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+GROUP BY person_id
+
+-- Head and neck cancer (based on ESGE screening for esophageal SCC)
+DROP TABLE IF EXISTS #HNCancer;
+SELECT 
+     person_id AS pt_id,
+     MIN(condition_start_date) AS hnca_start_date,
+     1 AS hnca
+INTO #HNCancer
+FROM omop.cdm_phi.condition_occurrence AS co
+INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
+WHERE id.snomed = '255055008' OR id.icd10 LIKE 'C76.0'
+AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+GROUP BY person_id
+
+-- Achalasia (based on ESGE screening for esophageal SCC)
+DROP TABLE IF EXISTS #Achalasia;
+SELECT 
+     person_id AS pt_id,
+     MIN(condition_start_date) AS achalasia_start_date,
+     1 AS achalasia
+INTO #Achalasia
+FROM omop.cdm_phi.condition_occurrence AS co
+INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
+WHERE id.snomed = '48531003' OR id.icd10 LIKE 'K22.0'
+AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+GROUP BY person_id
+
 -- Peptic ulcer
 DROP TABLE IF EXISTS #PUD;
 SELECT 
@@ -880,6 +936,18 @@ SELECT
 	hactive.hpylori_active,
 
 	-- Comorbidities
+	gca.gastricca_start_date,
+	gca.gastricca,
+
+	eca.esophagealca_start_date,
+	eca.esophagealca,
+
+	hnca.hnca_start_date,
+	hnca.hnca,
+
+	ach.achalasia_start_date,
+	ach.achalasia,
+
 	pud.pud_start_date,
 	pud.pud,
 
@@ -941,6 +1009,10 @@ LEFT JOIN #Hgba1c_prior a1cp ON e.visit_id = a1cp.visit_id AND a1cp.rn=1
 LEFT JOIN #Hpylori_hx hhx ON e.pt_id = hhx.pt_id 
 LEFT JOIN #Hpylori_active hactive ON e.pt_id = hactive.pt_id
 
+LEFT JOIN #GastricCa gac ON e.pt_id = gac.pt_id 
+LEFT JOIN #EsophagealCa eca ON e.pt_id = eca.pt_id 
+LEFT JOIN #HNCa hnca ON e.pt_id = hnca.pt_id 
+LEFT JOIN #Achalasia ach ON e.pt_id = ach.pt_id 
 LEFT JOIN #PUD pud ON e.pt_id = pud.pt_id 
 LEFT JOIN #GERD gerd ON e.pt_id = gerd.pt_id 
 LEFT JOIN #Hpylori_ICD hpylori ON e.pt_id = hpylori.pt_id 
