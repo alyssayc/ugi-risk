@@ -908,6 +908,38 @@ WHERE observation_concept_name IN ('Cigarette consumption', 'Cigarettes smoked c
 GROUP BY person_id
 
 /*
+ * Medications 
+ */
+
+DROP TABLE IF EXISTS #Meds;
+SELECT 
+    person_id AS pt_id,
+    MIN(
+        CASE 
+            WHEN xtn_generic_ingredient_source_concept_name IN ('butalbital/aspirin/caffeine', 'ASA/acetaminophen/caffeine/pot', 'ASA/salicylam/acetaminoph/caff', 'aspirin', 'aspirin/acetaminophen/caffeine', 'aspirin/caffeine', 'aspirin/calcium carb/magnesium', 'aspirin/calcium carbonate', 'aspirin/calcium/mag/aluminum', 'aspirin/sod bicarb/citric acid', 'aspirin/acetaminophen/cal carb', 'aspirin/codeine phosphate', 'hydrocodone bitartrate/aspirin', 'oxycodone HCl,terephth/aspirin', 'oxycodone HCl/aspirin', 'codeine/butalbital/ASA/caffein', 'carisoprodol/aspirin/codeine')
+                THEN drug_exposure_start_date
+            ELSE NULL 
+        END) AS ASA_start_date,
+    MIN(
+        CASE 
+            WHEN xtn_generic_ingredient_source_concept_name IN ('ibuprofen/diphenhydramine cit', 'ibuprofen/diphenhydramine HCl', 'naproxen sod/diphenhydramine', 'diflunisal', 'ibuprofen/acetaminophen', 'ibuprofen/famotidine', 'naproxen/esomeprazole mag', 'diclofenac sodium/misoprostol', 'diclofenac potassium', 'diclofenac sodium', 'diclofenac submicronized', 'etodolac', 'fenoprofen calcium', 'flurbiprofen', 'ibuprofen', 'ibuprofen/glycerin', 'indomethacin', 'indomethacin, submicronized', 'ketoprofen', 'ketorolac tromethamine', 'meclofenamate sodium', 'mefenamic acid', 'meloxicam', 'meloxicam, submicronized', 'nabumetone', 'naproxen', 'naproxen sodium', 'oxaprozin', 'piroxicam', 'sulindac', 'tolmetin sodium', 'celecoxib', 'Ibuprofen/Caff/B1/B2/B6/B12', 'hydrocodone/ibuprofen', 'ibuprofen/oxycodone HCl', 'tramadol HCl/celecoxib')             
+            THEN drug_exposure_start_date
+            ELSE NULL 
+        END) AS NSAID_start_date,
+    MIN(
+        CASE 
+            WHEN xtn_generic_ingredient_source_concept_name IN ('naproxen/esomeprazole mag', 'dexlansoprazole', 'esomeprazole mag/glycerin', 'Esomeprazole Magnesium', 'esomeprazole sodium', 'esomeprazole strontium', 'lansoprazole', 'omeprazole', 'omeprazole magnesium', 'omeprazole/sodium bicarbonate', 'pantoprazole sodium', 'rabeprazole sodium')
+            THEN drug_exposure_start_date
+            ELSE NULL 
+        END) AS PPI_start_date
+INTO #Meds
+FROM omop.cdm_phi.drug_exposure 
+WHERE xtn_pharmaceutical_class_source_concept_name IN ('NSAID,COX INHIBITOR-TYPE AND PROTON-PUMP INHIBITOR', 'NSAID ANALGESIC AND NON-SALICYLATE ANALGESIC COMB', 'NSAIDS (SYSTEMIC)-TOPICAL LOCAL ANESTHETIC COMBO', 'ANALGESIC, SALICYLATE, BARBITURATE, XANTHINE COMB.', 'SKELETAL MUSCLE RELAXANT,SALICYLAT,OPIOID ANALGESC', 'TOPICAL ANTI-INFLAMMATORY, NSAIDS', 'OPIOID ANALGESIC AND NSAID COMBINATION', 'OPIOID AND SALICYLATE ANALGESICS,BARBIT,XANTHINE', 'ANALGESICS, SALICYLATE AND NON-SALICYLATE COMB.', 'NSAIDS,CYCLOOXYGENASE-2(COX-2) SELECTIVE INHIBITOR', 'PROTON-PUMP INHIBITORS', 'NSAIDS(COX NON-SPEC.INHIB)AND PROSTAGLANDIN ANALOG', 'NSAID AND HISTAMINE H2 RECEPTOR ANTAGONIST COMB.', 'NSAIDS, CYCLOOXYGENASE INHIBITOR TYPE ANALGESICS', 'NSAIDS/DIETARY SUPPLEMENT COMBINATIONS', 'ANALGESIC/ANTIPYRETICS,NON-SALICYLATE', 'ANALGESIC,NSAID-1ST GEN.ANTIHISTAMINE,SEDATIVE CMB', 'ANALGESIC/ANTIPYRETICS, SALICYLATES', 'OPIOID ANALGESIC AND SALICYLATE ANALGESIC COMB')
+    AND xtn_drug_default_route_source_concept_name IN ('oral', 'intravenous')
+    AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+GROUP BY person_id 
+
+/*
  * Final table creation 
  */
 
@@ -1064,7 +1096,12 @@ SELECT
 	fhx.famhx_cancer,
 	fhx.famhx_esophagealca,
 	fhx.famhx_gastricca,
-	fhx.famhx_colonca
+	fhx.famhx_colonca,
+
+	-- Meds 
+	meds.ASA_start_date,
+	meds.NSAID_start_date,
+	meds.PPI_start_date
 
 FROM #Encounters e
 JOIN #Demographics d ON e.pt_id = d.pt_id
@@ -1121,6 +1158,8 @@ LEFT JOIN #Social_Race sr ON e.pt_id = sr.pt_id
 LEFT JOIN #Social_Ethnicity se ON e.pt_id = se.pt_id 
 LEFT JOIN #Social_Alcohol sa ON e.pt_id = sa.pt_id 
 LEFT JOIN #Social_Smoking ss ON e.pt_id = ss.pt_id 
+
+LEFT JOIN #Meds meds ON e.pt_id = meds.pt_id
 
 WHERE sl.rn = 1 
 	AND sr.rn = 1 
