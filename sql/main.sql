@@ -938,6 +938,7 @@ SELECT
 	e.xtn_epic_encounter_number,
 	e.etl_epic_encounter_key,
 	e.encounter_type,
+	e.care_site,
 	e.visit_start_date,
 	e.visit_end_date,
 	e.visit_start_date_minus_6mo,
