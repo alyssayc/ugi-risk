@@ -729,6 +729,38 @@ AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 GROUP BY person_id
 
 /*
+ * Family history 
+ */ 
+
+DROP TABLE IF EXISTS #Famhx_cancer;
+SELECT 
+    person_id AS pt_id,
+    CASE 
+	    WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
+    	ELSE 0 
+    END AS famhx_cancer,
+    CASE 
+    	WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%gastric%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%stomach%') 
+    	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
+    	ELSE 0
+    END AS famhx_gastricca,
+    CASE 
+    	WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%colo%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%rectal%') 
+    	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
+    	ELSE 0
+    END AS famhx_colonca,
+    CASE 
+    	WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%esophageal%') 
+    	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
+    	ELSE 0
+    END AS famhx_esophagealca
+FROM omop.cdm_phi.observation 
+WHERE (observation_concept_name = 'Family history with explicit context' 
+    OR  observation_concept_name = 'Family history of clinical finding') 
+    AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+
+
+/*
  * Final table creation 
  */
 
@@ -859,7 +891,13 @@ SELECT
 	tobacco.tobacco,
 
 	alcohol.alcohol_start_date,
-	alcohol.alcohol
+	alcohol.alcohol,
+
+	-- Family history
+	fhx.famhx_cancer,
+	fhx.famhx_esophagealca,
+	fhx.famhx_gastricca,
+	fhx.famhx_colonca
 	
 FROM #Encounters e
 JOIN #Demographics d ON e.pt_id = d.pt_id
@@ -904,3 +942,5 @@ LEFT JOIN #Hpylori_ICD hpylori ON e.pt_id = hpylori.pt_id
 LEFT JOIN #CAD cad ON e.pt_id = cad.pt_id 
 LEFT JOIN #Tobacco_ICD tobacco ON e.pt_id = tobacco.pt_id 
 LEFT JOIN #Alcohol_ICD alcohol ON e.pt_id = alcohol.pt_id 
+
+LEFT JOIN #Famhx_cancer fhx ON e.pt_id = fhx.pt_id 
