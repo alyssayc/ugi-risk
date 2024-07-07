@@ -24,19 +24,21 @@ WHERE year_of_birth = '1960' -- delete me
 
 DROP TABLE IF EXISTS #Encounters;
 SELECT
-	visit_occurrence_id as visit_id,
-	person_id as pt_id,
-	xtn_epic_encounter_number,
-	etl_epic_encounter_key,
-	xtn_visit_type_source_concept_name as encounter_type,
-	visit_start_date,
-	visit_end_date,
-	DATEADD(month, -6, visit_start_date) AS visit_start_date_minus_6mo,
-	DATEADD(month, -9, visit_start_date) AS visit_start_date_minus_9mo,
-	DATEADD(month, -12, visit_start_date) AS visit_start_date_minus_12mo,
-	DATEADD(month, -18, visit_start_date) AS visit_start_date_minus_18mo
+	e.visit_occurrence_id as visit_id,
+	e.person_id as pt_id,
+	e.xtn_epic_encounter_number,
+	e.etl_epic_encounter_key,
+	e.xtn_visit_type_source_concept_name as encounter_type,
+	c.xtn_parent_location_name as care_site,
+	e.visit_start_date,
+	e.visit_end_date,
+	DATEADD(month, -6, e.visit_start_date) AS visit_start_date_minus_6mo,
+	DATEADD(month, -9, e.visit_start_date) AS visit_start_date_minus_9mo,
+	DATEADD(month, -12, e.visit_start_date) AS visit_start_date_minus_12mo,
+	DATEADD(month, -18, e.visit_start_date) AS visit_start_date_minus_18mo
 INTO #Encounters 
 FROM omop.cdm_phi.visit_occurrence e
+LEFT JOIN omop.cdm_phi.care_site c ON e.care_site_id = c.care_site_id 
 WHERE xtn_visit_type_source_concept_name IN ('Telehealth Visit', 'Outpatient Visit', 'Hospital Outpatient Visit', 'Inpatient Hospitalization', 'Inpatient Hospitalization from ED Visit', 'ED Visit')
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 AND visit_start_date BETWEEN '1974-06-01' AND '2023-03-30' 
