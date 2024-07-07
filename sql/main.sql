@@ -21,7 +21,7 @@ FROM omop.cdm_phi.visit_occurrence e
 LEFT JOIN omop.cdm_phi.care_site c ON e.care_site_id = c.care_site_id 
 WHERE xtn_visit_type_source_concept_name IN ('Telehealth Visit', 'Outpatient Visit', 'Hospital Outpatient Visit', 'Inpatient Hospitalization', 'Inpatient Hospitalization from ED Visit', 'ED Visit')
 -- AND visit_start_date BETWEEN '1974-06-01' AND '2023-03-30' 
-AND visit_start_date BETWEEN '1974-06-01' AND '1975-06-01' -- change me 
+AND visit_start_date BETWEEN '1974-06-01' AND '2005-06-01' -- change me 
 
 /*
  * Demographics. Nontemporal patient data 
@@ -59,7 +59,7 @@ SELECT
 INTO #BMI
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id = 3038553
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 -- Includes blood gas hemoglobins
@@ -75,7 +75,7 @@ SELECT
 INTO #Hgb_all
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (1616317, 3000963, 3004119, 3006239, 3002173, 46235392)
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 -- Excludes blood gas hemoglobins
@@ -91,7 +91,7 @@ SELECT
 INTO #Hgb
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3000963, 3006239)
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 DROP TABLE IF EXISTS #Mcv;
@@ -106,7 +106,7 @@ SELECT
 INTO #Mcv
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3023599, 3024731)
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 DROP TABLE IF EXISTS #Potassium;
@@ -121,7 +121,7 @@ SELECT
 INTO #Potassium
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3023103, 3043409, 3041354, 3005456)
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 DROP TABLE IF EXISTS #Magnesium;
@@ -136,7 +136,7 @@ SELECT
 INTO #Magnesium
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3001420, 3006916, 3021770)
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 DROP TABLE IF EXISTS #Calcium;
@@ -151,7 +151,7 @@ SELECT
 INTO #Calcium
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3006906)
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 
@@ -167,7 +167,7 @@ SELECT
 INTO #Phosphate
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3011904)
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 
@@ -183,7 +183,7 @@ SELECT
 INTO #Triglycerides
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3022192, 36660413)
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 
@@ -199,7 +199,7 @@ SELECT
 INTO #LDL
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3028288, 3009966, 3028437, 3007352)
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 
@@ -215,7 +215,7 @@ SELECT
 INTO #Hgba1c
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3004410)
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 
@@ -265,7 +265,7 @@ SELECT
 INTO #Hpylori_all
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (3007894, 3016100, 3027491, 3023871, 3018195, 36304847, 3013139, 3010921, 3011630, 3016410)
-AND measurement_date BETWEEN '1973-02-01' AND '1975-07-01' -- restrict to -15 months from encounter date; change me 
+AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 DROP TABLE IF EXISTS #Hpylori_hx;
@@ -661,7 +661,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '363349007' OR id.icd10 LIKE 'C16.%'
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+AND condition_start_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 -- Esophageal cancer
@@ -675,7 +675,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '126817006' OR id.icd10 LIKE 'C15.%'
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+AND condition_start_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 -- Head and neck cancer (based on ESGE screening for esophageal SCC)
@@ -689,7 +689,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '255055008' OR id.icd10 LIKE 'C76.0'
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+AND condition_start_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 -- Achalasia (based on ESGE screening for esophageal SCC)
@@ -703,7 +703,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '48531003' OR id.icd10 LIKE 'K22.0'
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+AND condition_start_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 -- Peptic ulcer
@@ -717,7 +717,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '13200003' OR id.icd10 LIKE 'K25.%' OR id.icd10 LIKE 'K27.%'
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+AND condition_start_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 -- GERD
@@ -731,7 +731,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '235595009' OR id.icd10 LIKE 'K21.%'
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+AND condition_start_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 -- H pylori 
@@ -745,7 +745,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '13200003' OR id.icd10 LIKE 'K25.%' OR id.icd10 LIKE 'K27.%'
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+AND condition_start_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 -- Coronary artery disease
@@ -759,7 +759,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '53741008' OR id.icd10 LIKE 'I25.%'
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+AND condition_start_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 -- Tobacco use 
@@ -773,7 +773,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '56294008' OR id.icd10 = 'Z72.0' OR id.icd10 LIKE 'F17.%'
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+AND condition_start_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 -- Alcohol use 
@@ -787,7 +787,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '66590003' OR id.icd10 LIKE 'F10.%'
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-AND condition_start_date < '1975-06-01' -- change me to the last encounter date
+AND condition_start_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 /*
@@ -797,29 +797,31 @@ GROUP BY person_id
 DROP TABLE IF EXISTS #Famhx_cancer;
 SELECT 
     person_id AS pt_id,
-    CASE 
+    MAX(CASE 
 	    WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
     	ELSE 0 
-    END AS famhx_cancer,
-    CASE 
+    END) AS famhx_cancer,
+    MAX(CASE 
     	WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%gastric%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%stomach%') 
     	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
     	ELSE 0
-    END AS famhx_gastricca,
-    CASE 
+    END) AS famhx_gastricca,
+    MAX(CASE 
     	WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%colo%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%rectal%') 
     	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
     	ELSE 0
-    END AS famhx_colonca,
-    CASE 
+    END) AS famhx_colonca,
+    MAX(CASE 
     	WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%esophageal%') 
     	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
     	ELSE 0
-    END AS famhx_esophagealca
+    END) AS famhx_esophagealca
+INTO #Famhx_cancer
 FROM omop.cdm_phi.observation 
 WHERE (observation_concept_name = 'Family history with explicit context' 
     OR  observation_concept_name = 'Family history of clinical finding') 
     AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+GROUP BY person_id
 
 /*
  * Final table creation 
@@ -1011,7 +1013,7 @@ LEFT JOIN #Hpylori_active hactive ON e.pt_id = hactive.pt_id
 
 LEFT JOIN #GastricCa gac ON e.pt_id = gac.pt_id 
 LEFT JOIN #EsophagealCa eca ON e.pt_id = eca.pt_id 
-LEFT JOIN #HNCa hnca ON e.pt_id = hnca.pt_id 
+LEFT JOIN #HNCa hnca ON e.pt_id = hnca.pt_id
 LEFT JOIN #Achalasia ach ON e.pt_id = ach.pt_id 
 LEFT JOIN #PUD pud ON e.pt_id = pud.pt_id 
 LEFT JOIN #GERD gerd ON e.pt_id = gerd.pt_id 
