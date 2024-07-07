@@ -824,6 +824,90 @@ WHERE (observation_concept_name = 'Family history with explicit context'
 GROUP BY person_id
 
 /*
+ * Social history
+ * Since there can be many : one observations for each patient, I applied the following logic. For language, race, and ethnicity, count the entries and select the one that is most frequent. If all equal, select by alphabetical order (since "Other", "White", "Unknown" all fall toward the end of the alphabet)
+ */
+
+DROP TABLE IF EXISTS #Social_Language;
+SELECT 
+    pt_id, 
+    social_language, 
+    COUNT(*) AS count, 
+    ROW_NUMBER() OVER (PARTITION BY pt_id ORDER BY social_language, COUNT(social_language)) AS rn
+INTO #Social_Language
+FROM (
+    SELECT 
+        person_id AS pt_id,
+        xtn_value_as_source_concept_name AS social_language
+    FROM omop.cdm_phi.observation 
+    WHERE observation_concept_name = 'Language preference'
+        AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+) a 
+GROUP BY pt_id, social_language 
+
+DROP TABLE IF EXISTS #Social_Race;
+SELECT 
+    pt_id, 
+    social_race, 
+    COUNT(*) AS count, 
+    ROW_NUMBER() OVER (PARTITION BY pt_id ORDER BY social_race, COUNT(social_race)) AS rn
+INTO #Social_Race
+FROM (
+    SELECT 
+        person_id AS pt_id,
+        xtn_value_as_source_concept_name AS social_race
+    FROM omop.cdm_phi.observation 
+    WHERE observation_concept_name IN ('Race or ethnicity', 'Race','Tabulated race [CDC]')
+        AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+) a 
+GROUP BY pt_id, social_race 
+
+DROP TABLE IF EXISTS #Social_Ethnicity;
+SELECT 
+    pt_id, 
+    social_ethnicity, 
+    COUNT(*) AS count, 
+    ROW_NUMBER() OVER (PARTITION BY pt_id ORDER BY social_ethnicity, COUNT(social_ethnicity)) AS rn
+INTO #Social_Ethnicity
+FROM (
+    SELECT 
+        person_id AS pt_id,
+        xtn_value_as_source_concept_name AS social_ethnicity
+    FROM omop.cdm_phi.observation 
+    WHERE observation_concept_name IN ('Race or ethnicity', 'Tabulated ethnicity [CDC]', 'Ethnic background', 'Ethnic group')
+        AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+) a 
+GROUP BY pt_id, social_ethnicity 
+
+DROP TABLE IF EXISTS #Social_Alcohol;
+SELECT 
+    person_id AS pt_id,
+    MAX(CASE 
+        WHEN xtn_value_as_source_concept_name IN ('Not Currently', 'Yes') THEN 1
+        WHEN xtn_value_as_source_concept_name IN ('No', 'Never') THEN 0 
+        WHEN xtn_value_as_source_concept_name IN ('Not Asked', 'No matching concept') THEN -1
+    END) AS social_alcohol
+INTO #Social_Alcohol
+FROM omop.cdm_phi.observation 
+WHERE observation_concept_name IN ('Assessment of alcohol use', 'History of Alcohol use Narrative')
+    AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+GROUP BY person_id
+
+DROP TABLE IF EXISTS #Social_Smoking;
+SELECT 
+    person_id AS pt_id,
+    MAX(CASE 
+        WHEN xtn_value_as_source_concept_name IN ('Never', 'Passive Smoke Exposure - Never Smoker', 'Passive') THEN 0
+        WHEN xtn_value_as_source_concept_name IN ('Unknown', 'Not Asked', 'No matching concept', 'Never Assessed') THEN -1
+        WHEN xtn_value_as_source_concept_name IN ('Some Days', 'Light Smoker', 'Every Day', 'Cigarettes', 'Former', 'Quit', 'Yes', 'Smoker, Current Status Unknown', 'Heavy Smoker') THEN 1
+    END) AS social_smoking
+INTO #Social_Smoking
+FROM omop.cdm_phi.observation 
+WHERE observation_concept_name IN ('Cigarette consumption', 'Cigarettes smoked current (pack per day) - Reported', 'Tobacco usage screening', 'History of Tobacco use Narrative', 'Smoking assessment')
+    AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+GROUP BY person_id
+
+/*
  * Final table creation 
  */
 
@@ -842,6 +926,13 @@ SELECT
 	d.race,
 	d.ethnicity,
 	d.preferred_language,
+
+	-- Social history
+	sl.social_language, 
+	sr.social_race, 
+	se.social_ethnicity,
+	sa.social_alcohol,
+	ss.social_smoking, 
 
 	-- Encounter information
 	e.xtn_epic_encounter_number,
@@ -973,7 +1064,7 @@ SELECT
 	fhx.famhx_esophagealca,
 	fhx.famhx_gastricca,
 	fhx.famhx_colonca
-	
+
 FROM #Encounters e
 JOIN #Demographics d ON e.pt_id = d.pt_id
 LEFT JOIN #BMI_baseline b ON e.visit_id = b.visit_id AND b.rn = 1
@@ -1011,9 +1102,9 @@ LEFT JOIN #Hgba1c_prior a1cp ON e.visit_id = a1cp.visit_id AND a1cp.rn=1
 LEFT JOIN #Hpylori_hx hhx ON e.pt_id = hhx.pt_id 
 LEFT JOIN #Hpylori_active hactive ON e.pt_id = hactive.pt_id
 
-LEFT JOIN #GastricCa gac ON e.pt_id = gac.pt_id 
+LEFT JOIN #GastricCa gca ON e.pt_id = gca.pt_id 
 LEFT JOIN #EsophagealCa eca ON e.pt_id = eca.pt_id 
-LEFT JOIN #HNCa hnca ON e.pt_id = hnca.pt_id
+LEFT JOIN #HNCancer hnca ON e.pt_id = hnca.pt_id
 LEFT JOIN #Achalasia ach ON e.pt_id = ach.pt_id 
 LEFT JOIN #PUD pud ON e.pt_id = pud.pt_id 
 LEFT JOIN #GERD gerd ON e.pt_id = gerd.pt_id 
@@ -1023,3 +1114,13 @@ LEFT JOIN #Tobacco_ICD tobacco ON e.pt_id = tobacco.pt_id
 LEFT JOIN #Alcohol_ICD alcohol ON e.pt_id = alcohol.pt_id 
 
 LEFT JOIN #Famhx_cancer fhx ON e.pt_id = fhx.pt_id 
+
+LEFT JOIN #Social_Language sl ON e.pt_id = sl.pt_id 
+LEFT JOIN #Social_Race sr ON e.pt_id = sr.pt_id 
+LEFT JOIN #Social_Ethnicity se ON e.pt_id = se.pt_id 
+LEFT JOIN #Social_Alcohol sa ON e.pt_id = sa.pt_id 
+LEFT JOIN #Social_Smoking ss ON e.pt_id = ss.pt_id 
+
+WHERE sl.rn = 1 
+	AND sr.rn = 1 
+	AND se.rn=1 
