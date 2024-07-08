@@ -70,6 +70,8 @@ SELECT
 	measurement_source_value as hgball_textid,
 	measurement_date as hgball_date,
 	value_as_number as hgball_num,
+	range_high as hgball_range_high,
+	range_low as hgball_range_low,
 	value_source_value as hgball_value,
 	unit_concept_code as hgball_unit
 INTO #Hgb_all
@@ -86,6 +88,8 @@ SELECT
 	measurement_source_value as hgb_textid,
 	measurement_date as hgb_date,
 	value_as_number as hgb_num,
+	range_high as hgb_range_high,
+	range_low as hgb_range_low,
 	value_source_value as hgb_value,
 	unit_concept_code as hgb_unit
 INTO #Hgb
@@ -101,6 +105,8 @@ SELECT
 	measurement_source_value as mcv_textid,
 	measurement_date as mcv_date,
 	value_as_number as mcv_num,
+	range_high as mcv_range_high,
+	range_low as mcv_range_low,
 	value_source_value as mcv_value,
 	unit_concept_code as mcv_unit
 INTO #Mcv
@@ -116,6 +122,8 @@ SELECT
 	measurement_source_value as potassium_textid,
 	measurement_date as potassium_date,
 	value_as_number as potassium_num,
+	range_high as potassium_range_high,
+	range_low as potassium_range_low,
 	value_source_value as potassium_value,
 	unit_concept_code as potassium_unit
 INTO #Potassium
@@ -131,6 +139,8 @@ SELECT
 	measurement_source_value as magnesium_textid,
 	measurement_date as magnesium_date,
 	value_as_number as magnesium_num,
+	range_high as magnesium_range_high,
+	range_low as magnesium_range_low,
 	value_source_value as magnesium_value,
 	unit_concept_code as magnesium_unit
 INTO #Magnesium
@@ -146,6 +156,8 @@ SELECT
 	measurement_source_value as calcium_textid,
 	measurement_date as calcium_date,
 	value_as_number as calcium_num,
+	range_high as calcium_range_high,
+	range_low as calcium_range_low,
 	value_source_value as calcium_value,
 	unit_concept_code as calcium_unit
 INTO #Calcium
@@ -162,6 +174,8 @@ SELECT
 	measurement_source_value as phosphate_textid,
 	measurement_date as phosphate_date,
 	value_as_number as phosphate_num,
+	range_high as phosphate_range_high,
+	range_low as phosphate_range_low,
 	value_source_value as phosphate_value,
 	unit_concept_code as phosphate_unit
 INTO #Phosphate
@@ -178,6 +192,8 @@ SELECT
 	measurement_source_value as triglycerides_textid,
 	measurement_date as triglycerides_date,
 	value_as_number as triglycerides_num,
+	range_high as triglycerides_range_high,
+	range_low as triglycerides_range_low,
 	value_source_value as triglycerides_value,
 	unit_concept_code as triglycerides_unit
 INTO #Triglycerides
@@ -194,6 +210,8 @@ SELECT
 	measurement_source_value as LDL_textid,
 	measurement_date as LDL_date,
 	value_as_number as LDL_num,
+	range_high as LDL_range_high,
+	range_low as LDL_range_low,
 	value_source_value as LDL_value,
 	unit_concept_code as LDL_unit
 INTO #LDL
@@ -210,6 +228,8 @@ SELECT
 	measurement_source_value as hgba1c_textid,
 	measurement_date as hgba1c_date,
 	value_as_number as hgba1c_num,
+	range_high as hgba1c_range_high,
+	range_low as hgba1c_range_low,
 	value_source_value as hgba1c_value,
 	unit_concept_code as hgba1c_unit
 INTO #Hgba1c
@@ -339,6 +359,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.hgball_value,
 	b.hgball_num,
+	b.hgball_range_high,
+	b.hgball_range_low,
 	b.hgball_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.hgball_date))) AS rn
 INTO #Hgball_baseline
@@ -354,6 +376,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.hgball_value,
 	b.hgball_num,
+	b.hgball_range_high,
+	b.hgball_range_low,
 	b.hgball_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.hgball_date))) AS rn 
 INTO #Hgball_prior
@@ -369,6 +393,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.hgb_value,
 	b.hgb_num,
+	b.hgb_range_high,
+	b.hgb_range_low,
 	b.hgb_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.hgb_date))) AS rn
 INTO #Hgb_baseline
@@ -384,6 +410,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.hgb_value,
 	b.hgb_num,
+	b.hgb_range_high,
+	b.hgb_range_low,
 	b.hgb_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.hgb_date))) AS rn 
 INTO #Hgb_prior
@@ -399,6 +427,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.mcv_value,
 	b.mcv_num,
+	b.mcv_range_high,
+	b.mcv_range_low,
 	b.mcv_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.mcv_date))) AS rn
 INTO #Mcv_baseline
@@ -414,6 +444,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.mcv_value,
 	b.mcv_num,
+	b.mcv_range_high,
+	b.mcv_range_low,
 	b.mcv_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.mcv_date))) AS rn 
 INTO #Mcv_prior
@@ -429,6 +461,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.potassium_value,
 	b.potassium_num,
+	b.potassium_range_high,
+	b.potassium_range_low,
 	b.potassium_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.potassium_date))) AS rn
 INTO #Potassium_baseline
@@ -444,6 +478,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.potassium_value,
 	b.potassium_num,
+	b.potassium_range_high,
+	b.potassium_range_low,
 	b.potassium_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.potassium_date))) AS rn 
 INTO #Potassium_prior
@@ -460,6 +496,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.magnesium_value,
 	b.magnesium_num,
+	b.magnesium_range_high,
+	b.magnesium_range_low,
 	b.magnesium_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.magnesium_date))) AS rn
 INTO #Magnesium_baseline
@@ -475,6 +513,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.magnesium_value,
 	b.magnesium_num,
+	b.magnesium_range_high,
+	b.magnesium_range_low,
 	b.magnesium_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.magnesium_date))) AS rn 
 INTO #Magnesium_prior
@@ -491,6 +531,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.calcium_value,
 	b.calcium_num,
+	b.calcium_range_high,
+	b.calcium_range_low,
 	b.calcium_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.calcium_date))) AS rn
 INTO #Calcium_baseline
@@ -506,6 +548,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.calcium_value,
 	b.calcium_num,
+	b.calcium_range_high,
+	b.calcium_range_low,
 	b.calcium_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.calcium_date))) AS rn 
 INTO #Calcium_prior
@@ -521,6 +565,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.phosphate_value,
 	b.phosphate_num,
+	b.phosphate_range_high,
+	b.phosphate_range_low,
 	b.phosphate_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.phosphate_date))) AS rn
 INTO #Phosphate_baseline
@@ -536,6 +582,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.phosphate_value,
 	b.phosphate_num,
+	b.phosphate_range_high,
+	b.phosphate_range_low,
 	b.phosphate_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.phosphate_date))) AS rn 
 INTO #Phosphate_prior
@@ -552,6 +600,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.triglycerides_value,
 	b.triglycerides_num,
+	b.triglycerides_range_high,
+	b.triglycerides_range_low,
 	b.triglycerides_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.triglycerides_date))) AS rn
 INTO #Triglycerides_baseline
@@ -567,6 +617,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.triglycerides_value,
 	b.triglycerides_num,
+	b.triglycerides_range_high,
+	b.triglycerides_range_low,
 	b.triglycerides_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.triglycerides_date))) AS rn 
 INTO #Triglycerides_prior
@@ -582,6 +634,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.LDL_value,
 	b.LDL_num,
+	b.LDL_range_high,
+	b.LDL_range_low,
 	b.LDL_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.LDL_date))) AS rn
 INTO #LDL_baseline
@@ -597,6 +651,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.LDL_value,
 	b.LDL_num,
+	b.LDL_range_high,
+	b.LDL_range_low,
 	b.LDL_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.LDL_date))) AS rn 
 INTO #LDL_prior
@@ -612,6 +668,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.hgba1c_value,
 	b.hgba1c_num,
+	b.hgba1c_range_high,
+	b.hgba1c_range_low,
 	b.hgba1c_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.hgba1c_date))) AS rn
 INTO #Hgba1c_baseline
@@ -627,6 +685,8 @@ SELECT e.visit_id,
 	e.visit_start_date,
 	b.hgba1c_value,
 	b.hgba1c_num,
+	b.hgba1c_range_high,
+	b.hgba1c_range_low,
 	b.hgba1c_date,
 	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.hgba1c_date))) AS rn 
 INTO #Hgba1c_prior
@@ -1048,6 +1108,7 @@ SELECT
 	b.bmi_num AS BMI_baseline,
 	b.bmi_value AS BMI_baseline_val,
 	b.bmi_date AS BMI_baseline_date,
+	
 	p.bmi_num AS BMI_prior,
 	p.bmi_value AS BMI_prior_val,
 	p.bmi_date AS BMI_prior_date,
@@ -1055,72 +1116,122 @@ SELECT
 	hab.hgball_num AS hgball_baseline,
 	hab.hgball_value AS hgball_baseline_val,
 	hab.hgball_date AS hgball_baseline_date,
+	hab.hgball_range_high AS hgball_baseline_range_high,
+	hab.hgball_range_low AS hgball_baseline_range_low,
+
 	hap.hgball_num AS hgball_prior,
 	hap.hgball_value AS hgball_prior_val,
 	hap.hgball_date AS hgball_prior_date,
+	hap.hgball_range_high AS hgball_prior_range_high,
+	hap.hgball_range_low AS hgball_prior_range_low,
 
 	hb.hgb_num AS hgb_baseline,
 	hb.hgb_value AS hgb_baseline_val,
 	hb.hgb_date AS hgb_baseline_date,
+	hb.hgb_range_high AS hgb_baseline_range_high,
+	hb.hgb_range_low AS hgb_baseline_range_low,
+
 	hp.hgb_num AS hgb_prior,
 	hp.hgb_value AS hgb_prior_val,
 	hp.hgb_date AS hgb_prior_date,
+	hp.hgb_range_high AS hgb_prior_range_high,
+	hp.hgb_range_low AS hgb_prior_range_low,
 
 	mb.mcv_num AS mcv_baseline,
 	mb.mcv_value AS mcv_baseline_val,
 	mb.mcv_date AS mcv_baseline_date,
+	mb.mcv_range_high AS mcv_baseline_range_high,
+	mb.mcv_range_low AS mcv_baseline_range_low,
+
 	mp.mcv_num AS mcv_prior,
 	mp.mcv_value AS mcv_prior_val,
 	mp.mcv_date AS mcv_prior_date,
+	mp.mcv_range_high AS mcv_prior_range_high,
+	mp.mcv_range_low AS mcv_prior_range_low,
 
 	pb.potassium_num AS potassium_baseline,
 	pb.potassium_value AS potassium_baseline_val,
 	pb.potassium_date AS potassium_baseline_date,
+	pb.potassium_range_high AS potassium_baseline_range_high,
+	pb.potassium_range_low AS potassium_baseline_range_low,
+
 	pp.potassium_num AS potassium_prior,
 	pp.potassium_value AS potassium_prior_val,
 	pp.potassium_date AS potassium_prior_date,
+	pp.potassium_range_high AS potassium_prior_range_high,
+	pp.potassium_range_low AS potassium_prior_range_low,
 
 	mgb.magnesium_num AS magnesium_baseline,
 	mgb.magnesium_value AS magnesium_baseline_val,
 	mgb.magnesium_date AS magnesium_baseline_date,
+	mgb.magnesium_range_high AS magnesium_baseline_range_high,
+	mgb.magnesium_range_low AS magnesium_baseline_range_low,
+
 	mgp.magnesium_num AS magnesium_prior,
 	mgp.magnesium_value AS magnesium_prior_val,
 	mgp.magnesium_date AS magnesium_prior_date,
+	mgp.magnesium_range_high AS magnesium_prior_range_high,
+	mgp.magnesium_range_low AS magnesium_prior_range_low,
 
 	cb.calcium_num AS calcium_baseline,
 	cb.calcium_value AS calcium_baseline_val,
 	cb.calcium_date AS calcium_baseline_date,
+	cb.calcium_range_high AS calcium_baseline_range_high,
+	cb.calcium_range_low AS calcium_baseline_range_low,
+
 	cp.calcium_num AS calcium_prior,
 	cp.calcium_value AS calcium_prior_val,
 	cp.calcium_date AS calcium_prior_date,
+	cp.calcium_range_high AS calcium_prior_range_high,
+	cp.calcium_range_low AS calcium_prior_range_low,
 
 	phb.phosphate_num AS phosphate_baseline,
 	phb.phosphate_value AS phosphate_baseline_val,
 	phb.phosphate_date AS phosphate_baseline_date,
+	phb.phosphate_range_high AS phosphate_baseline_range_high,
+	phb.phosphate_range_low AS phosphate_baseline_range_low,
+
 	php.phosphate_num AS phosphate_prior,
 	php.phosphate_value AS phosphate_prior_val,
 	php.phosphate_date AS phosphate_prior_date,
+	php.phosphate_range_high AS phosphate_prior_range_high,
+	php.phosphate_range_low AS phosphate_prior_range_low,
 
 	tb.triglycerides_num AS triglycerides_baseline,
 	tb.triglycerides_value AS triglycerides_baseline_val,
 	tb.triglycerides_date AS triglycerides_baseline_date,
+	tb.triglycerides_range_high AS triglycerides_baseline_range_high,
+	tb.triglycerides_range_low AS triglycerides_baseline_range_low,
+
 	tp.triglycerides_num AS triglycerides_prior,
 	tp.triglycerides_value AS triglycerides_prior_val,
 	tp.triglycerides_date AS triglycerides_prior_date,
+	tp.triglycerides_range_high AS triglycerides_prior_range_high,
+	tp.triglycerides_range_low AS triglycerides_prior_range_low,
 
 	lb.LDL_num AS LDL_baseline,
 	lb.LDL_value AS LDL_baseline_val,
 	lb.LDL_date AS LDL_baseline_date,
+	lb.LDL_range_high AS LDL_baseline_range_high,
+	lb.LDL_range_low AS LDL_baseline_range_low,
+
 	lp.LDL_num AS LDL_prior,
 	lp.LDL_value AS LDL_prior_val,
 	lp.LDL_date AS LDL_prior_date,
+	lp.LDL_range_high AS LDL_prior_range_high,
+	lp.LDL_range_low AS LDL_prior_range_low,
 
 	a1cb.hgba1c_num AS hgba1c_baseline,
 	a1cb.hgba1c_value AS hgba1c_baseline_val,
 	a1cb.hgba1c_date AS hgba1c_baseline_date,
+	a1cb.hgba1c_range_high AS hgba1c_baseline_range_high,
+	a1cb.hgba1c_range_low AS hgba1c_baseline_range_low,
+
 	a1cp.hgba1c_num AS hgba1c_prior,
 	a1cp.hgba1c_value AS hgba1c_prior_val,
 	a1cp.hgba1c_date AS hgba1c_prior_date,
+	a1cp.hgba1c_range_high AS hgba1c_prior_range_high,
+	a1cp.hgba1c_range_low AS hgba1c_prior_range_low,
 
 	hhx.hpylori_dx_date,
 	hhx.hpylori_hx,
