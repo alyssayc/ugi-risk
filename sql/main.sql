@@ -883,14 +883,42 @@ DROP TABLE IF EXISTS #Social_Alcohol;
 SELECT 
     person_id AS pt_id,
     MAX(CASE 
-        WHEN xtn_value_as_source_concept_name IN ('Not Currently', 'Yes') THEN 1
+        WHEN xtn_value_as_source_concept_name = 'Yes' THEN 2
+        WHEN xtn_value_as_source_concept_name = 'Not Currently' THEN 1
         WHEN xtn_value_as_source_concept_name IN ('No', 'Never') THEN 0 
         WHEN xtn_value_as_source_concept_name IN ('Not Asked', 'No matching concept') THEN -1
-    END) AS social_alcohol
+    END) AS social_alcohol,
+    MAX(CASE 
+        -- rename so there is an numerical order that cooresponds to the natural ordinal position so we can use the aggregate function MAX
+        WHEN observation_concept_name = 'How often do you have 6 or more drinks on 1 occasion' AND value_as_concept_name = 'Daily or almost daily' THEN '4: Daily or almost daily' 
+        WHEN observation_concept_name = 'How often do you have 6 or more drinks on 1 occasion' AND value_as_concept_name = 'Weekly' THEN '3: Weekly' 
+        WHEN observation_concept_name = 'How often do you have 6 or more drinks on 1 occasion' AND value_as_concept_name = 'Monthly' THEN '2: Monthly' 
+        WHEN observation_concept_name = 'How often do you have 6 or more drinks on 1 occasion' AND value_as_concept_name = 'Less than monthly' THEN '1: Less than monthly' 
+        WHEN observation_concept_name = 'How often do you have 6 or more drinks on 1 occasion' AND value_as_concept_name = 'Never' THEN '0: Never' 
+        WHEN observation_concept_name = 'How often do you have 6 or more drinks on 1 occasion' AND value_as_concept_name = 'Not asked' THEN '-1: Not asked' 
+        WHEN observation_concept_name = 'How often do you have 6 or more drinks on 1 occasion' AND value_as_concept_name = 'Patient refused' THEN '-1: Patient refused' 
+    END) AS social_alcohol_binge_freq, 
+    MAX(CASE 
+        -- there is a natural ordinal progression so no need to rename
+        -- '2-3 times a week', '2-4 times a month', '4 or more times a week', 'Monthly or less', 'Never', 'Not asked', 'Patient refused'
+        WHEN observation_concept_name = 'How often do you have a drink containing alcohol' THEN value_as_concept_name
+        ELSE NULL 
+    END) AS social_alcohol_drink_freq,
+    MAX(CASE 
+        WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = '10 or more' THEN '5: 10 or more'
+        WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = '7 to 9' THEN '4: 7 to 9'
+        WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = '5 or 6' THEN '3: 5 or 6'
+        WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = '3 or 4' THEN '2: 3 or 4'
+        WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = '1 or 2' THEN '1: 1 or 2'
+        WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = 'Not asked' THEN '0: Not asked'
+        WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = 'Patient refused' THEN '0: Patient refused'
+        ELSE NULL
+    END) AS social_alcohol_drinks_day
 INTO #Social_Alcohol
 FROM omop.cdm_phi.observation 
-WHERE observation_concept_name IN ('Assessment of alcohol use', 'History of Alcohol use Narrative')
-    AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+WHERE observation_concept_name IN ('Assessment of alcohol use', 'History of Alcohol use Narrative',
+    'How often do you have 6 or more drinks on 1 occasion', 'How often do you have a drink containing alcohol', 'How many standard drinks containing alcohol do you have on a typical day')
+    AND observation_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 DROP TABLE IF EXISTS #Social_Smoking;
@@ -920,10 +948,21 @@ SELECT
 INTO #Social_Smoking
 FROM omop.cdm_phi.observation 
 WHERE observation_concept_name IN ('Cigarette consumption', 'Cigarettes smoked current (pack per day) - Reported', 
-    'Tobacco usage screening', 'History of Tobacco use Narrative', 'Smoking assessment',
-    'Smoking started', 'Date quit tobacco smoking')
+    'Tobacco usage screening', 'Smoking assessment',
+	'Smoking started', 'Date quit tobacco smoking')
     AND observation_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
+
+DROP TABLE IF EXISTS #Social_Smoking_Narrative;
+SELECT 
+    person_id AS pt_id,
+    observation_date,
+    value_as_string AS social_smoking_narrative,
+    ROW_NUMBER() OVER (PARTITION BY person_id ORDER BY observation_date DESC) AS rn
+INTO #Social_Smoking_Narrative
+FROM omop.cdm_phi.observation
+WHERE observation_concept_name = 'History of Tobacco use Narrative'
+AND observation_date <= '2005-06-01' -- change me to the last encounter date
 
 /*
  * Medications 
@@ -982,7 +1021,16 @@ SELECT
 	sr.social_race, 
 	se.social_ethnicity,
 	sa.social_alcohol,
-	ss.social_smoking, 
+	sa.social_alcohol_binge_freq, 
+	sa.social_alcohol_drink_freq,
+	sa.social_alcohol_drinks_day,
+	ss.social_smoking_ever,
+	ss.social_smoking_quit,
+	ss.social_smoking_ppd,
+	ss.social_smoking_start_date,
+	ss.social_smoking_quit_date,
+	ssn.social_smoking_narrative,
+	ssn.social_smoking_narrative_date,
 
 	-- Encounter information
 	e.xtn_epic_encounter_number,
@@ -1176,9 +1224,11 @@ LEFT JOIN #Social_Race sr ON e.pt_id = sr.pt_id
 LEFT JOIN #Social_Ethnicity se ON e.pt_id = se.pt_id 
 LEFT JOIN #Social_Alcohol sa ON e.pt_id = sa.pt_id 
 LEFT JOIN #Social_Smoking ss ON e.pt_id = ss.pt_id 
+LEFT JOIN #Social_Smoking_Narrative ssn ON e.pt_id = ssn.pt_id 
 
 LEFT JOIN #Meds meds ON e.pt_id = meds.pt_id
 
 WHERE sl.rn = 1 
 	AND sr.rn = 1 
-	AND se.rn=1 
+	AND se.rn = 1 
+	AND ssn.rn = 1
