@@ -900,11 +900,29 @@ SELECT
         WHEN xtn_value_as_source_concept_name IN ('Never', 'Passive Smoke Exposure - Never Smoker', 'Passive') THEN 0
         WHEN xtn_value_as_source_concept_name IN ('Unknown', 'Not Asked', 'No matching concept', 'Never Assessed') THEN -1
         WHEN xtn_value_as_source_concept_name IN ('Some Days', 'Light Smoker', 'Every Day', 'Cigarettes', 'Former', 'Quit', 'Yes', 'Smoker, Current Status Unknown', 'Heavy Smoker') THEN 1
-    END) AS social_smoking
+    END) AS social_smoking_ever,
+    MAX(CASE 
+        WHEN xtn_value_as_source_concept_name IN ('Former', 'Quit') THEN 1
+        ELSE NULL
+    END) AS social_smoking_quit,
+    MAX(CASE
+        WHEN observation_concept_name = 'Cigarettes smoked current (pack per day) - Reported' THEN value_as_number
+        ELSE NULL
+    END) AS social_smoking_ppd,
+    MIN(CASE 
+        WHEN observation_concept_name = 'Smoking started' THEN value_as_datetime
+        ELSE NULL
+    END) AS social_smoking_start_date,
+    MAX(CASE 
+        WHEN observation_concept_name = 'Date quit tobacco smoking' THEN value_as_datetime
+        ELSE NULL
+    END) AS social_smoking_quit_date
 INTO #Social_Smoking
 FROM omop.cdm_phi.observation 
-WHERE observation_concept_name IN ('Cigarette consumption', 'Cigarettes smoked current (pack per day) - Reported', 'Tobacco usage screening', 'History of Tobacco use Narrative', 'Smoking assessment')
-    AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+WHERE observation_concept_name IN ('Cigarette consumption', 'Cigarettes smoked current (pack per day) - Reported', 
+    'Tobacco usage screening', 'History of Tobacco use Narrative', 'Smoking assessment',
+    'Smoking started', 'Date quit tobacco smoking')
+    AND observation_date <= '2005-06-01' -- change me to the last encounter date
 GROUP BY person_id
 
 /*
