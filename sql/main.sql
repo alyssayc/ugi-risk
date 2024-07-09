@@ -220,7 +220,6 @@ WHERE measurement_concept_id IN (3028288, 3009966, 3028437, 3007352)
 AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
-
 DROP TABLE IF EXISTS #Hgba1c;
 SELECT 
 	person_id as pt_id,
@@ -238,85 +237,187 @@ WHERE measurement_concept_id IN (3004410)
 AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
+DROP TABLE IF EXISTS #Hpylori_clean;
+SELECT 
+    person_id as pt_id,
+    measurement_concept_id as hpylori_id,
+    measurement_source_value as hpylori_textid,
+    measurement_date as hpylori_date,
+    value_as_number as hpylori_num,
+    value_source_value as hpylori_value,
+    unit_concept_code as hpylori_unit,
+    range_high as hpylori_range_high,
+    range_low as hpylori_range_low,
+    CASE 
+        WHEN value_source_value = '<9.0' AND range_high = '8.9' THEN 'negative'
+        WHEN value_source_value = 'Positive' THEN 'positive'
+        WHEN value_source_value = 'Negative' THEN 'negative'
+        WHEN value_source_value = 'TNP' THEN 'error' -- test not performed
+        WHEN value_as_number IS NOT NULL AND value_as_number > range_high THEN 'positive'
+        WHEN value_as_number IS NOT NULL AND value_as_number <= range_high THEN 'negative'
+        WHEN value_as_number IS NOT NULL AND range_high IS NULL THEN 'no range' -- 'H.PYLORI IGG INDEX', 'H. PYLORI IGA', 'H. PYLORI, IGM AB'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%duplicate%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%equivocal%' THEN 'negative'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not sufficient%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not performed%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%see%' THEN 'error' -- ie. see below or see note
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no specimen%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%incorrect%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%inappropriate%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%insufficient%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%improper%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%wrong%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%error%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%received%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%cancel%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%inconclusive%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%uncertain%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%comment%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not offered%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no longer%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%lost%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no suitable%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no longer available%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%lab accident%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%leaked%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%note%' THEN 'error'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%discrepancy%' THEN 'error'
+        ELSE value_source_value 
+    END AS hpylori_result,
+    CASE 
+        WHEN value_source_value = '<9.0' AND range_high = '8.9' THEN 0
+        WHEN value_source_value = 'Positive' THEN 1
+        WHEN value_source_value = 'Negative' THEN 0
+        WHEN value_source_value = 'TNP' THEN -2 -- test not performed
+        WHEN value_as_number IS NOT NULL AND value_as_number > range_high THEN 1
+        WHEN value_as_number IS NOT NULL AND value_as_number <= range_high THEN 0
+        WHEN value_as_number IS NOT NULL AND range_high IS NULL THEN -1 -- 'H.PYLORI IGG INDEX', 'H. PYLORI IGA', 'H. PYLORI, IGM AB'
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%duplicate%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%equivocal%' THEN 0
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not sufficient%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not performed%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%see%' THEN -2 -- ie. see below or see note
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no specimen%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%incorrect%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%inappropriate%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%insufficient%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%improper%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%wrong%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%error%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%received%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%cancel%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%inconclusive%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%uncertain%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%comment%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not offered%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no longer%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%lost%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no suitable%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no longer available%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%lab accident%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%leaked%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%note%' THEN -2
+        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%discrepancy%' THEN -2
+        ELSE -3 -- if there are a lot of -3s then might be worth the time to go back and clean up the extra values a bit more
+    END AS hpylori_result_num,
+    CASE 
+        WHEN measurement_concept_id IN (3016100, 36304847, 3013139) THEN 'stool'
+        WHEN measurement_concept_id IN (3018195, 3016410) THEN 'IgA'
+        WHEN measurement_concept_id IN (3007894, 3010921) THEN 'IgM'
+        WHEN measurement_concept_id IN (3027491, 3023871) THEN 'IgG'
+        WHEN measurement_concept_id = 3011630 THEN 'breath'
+    END AS hpylori_test
+INTO #Hpylori_clean
+FROM omop.cdm_phi.measurement
+WHERE measurement_concept_id IN (3007894, 3016100, 3027491, 3023871, 3018195, 36304847, 3013139, 3010921, 3011630, 3016410)
+AND measurement_date BETWEEN '2020-01-01' AND '2020-12-30' -- restrict to -15 months from encounter date; change me 
+-- AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
 
 DROP TABLE IF EXISTS #Hpylori_all;
 SELECT 
-	person_id as pt_id,
-	measurement_concept_id as hpylori_id,
-	measurement_source_value as hpylori_textid,
-	measurement_date as hpylori_date,
-	value_as_number as hpylori_num,
-	value_source_value as hpylori_value,
-	unit_concept_code as hpylori_unit,
-	range_high as hpylori_range_high,
-	range_low as hpylori_range_low,
-	CASE 
-		WHEN value_as_number IS NOT NULL AND value_as_number > range_high THEN 'high'
-		WHEN value_as_number IS NOT NULL AND value_as_number <= range_high THEN 'not high'
-		WHEN value_as_number IS NOT NULL AND range_high IS NULL THEN 'no range' -- 'H.PYLORI IGG INDEX', 'H. PYLORI IGA', 'H. PYLORI, IGM AB'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%duplicate%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%equivocal%' THEN 'not high'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not sufficient%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not performed%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%see%' THEN 'error' -- ie. see below or see note
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no specimen%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%incorrect%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%inappropriate%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%insufficient%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%improper%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%wrong%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%error%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%received%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%cancel%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%inconclusive%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%uncertain%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%comment%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not offered%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no longer%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%lost%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no suitable%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no longer available%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%lab accident%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%leaked%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%note%' THEN 'error'
-		WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%discrepancy%' THEN 'error'
-		ELSE value_source_value 
-	END AS hpylori_result
+    pt_id,
+    hpylori_date,
+    hpylori_value,
+    hpylori_num,
+    hpylori_range_high,
+    hpylori_range_low,
+    hpylori_result,
+    hpylori_result_num,
+    hpylori_test,
+    ROW_NUMBER() OVER (PARTITION BY pt_id ORDER BY hpylori_result_num DESC, hpylori_date ASC) AS rn,
+    ROW_NUMBER() OVER (PARTITION BY pt_id, hpylori_test ORDER BY hpylori_result_num DESC, hpylori_date ASC) AS rn_type
 INTO #Hpylori_all
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3007894, 3016100, 3027491, 3023871, 3018195, 36304847, 3013139, 3010921, 3011630, 3016410)
-AND measurement_date BETWEEN '1973-02-01' AND '2005-07-01' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+FROM #Hpylori_clean
+WHERE hpylori_result_num > -2
 
-DROP TABLE IF EXISTS #Hpylori_hx;
+DROP TABLE IF EXISTS #Hpylori_earliest;
 SELECT 
-	pt_id,
-	MIN(hpylori_date) as hpylori_dx_date,
-	MAX(CASE 
-		WHEN hpylori_result = 'high' THEN 1
-		WHEN hpylori_result = 'not high' THEN 0 
-		WHEN hpylori_result = 'error' THEN -1 
-		ELSE -2 -- if there are a lot of -2s then might be worth the time to go back and clean up the extra values a bit more
-	END) AS hpylori_hx
-INTO #Hpylori_hx
-FROM #Hpylori_all 
-GROUP BY pt_id 
+    pt_id,
+    hpylori_date,
+    hpylori_value,
+    hpylori_num,
+    hpylori_range_high,
+    hpylori_range_low,
+    hpylori_result,
+    hpylori_result_num,
+    hpylori_test
+INTO #Hpylori_earliest
+FROM #Hpylori_all
+WHERE rn = 1 
 
-DROP TABLE IF EXISTS #Hpylori_active;
+DROP TABLE IF EXISTS #Hpylori_type;
 SELECT 
-	pt_id,
-	MIN(hpylori_date) as hpylori_active_date,
-	MAX(CASE 
-		WHEN hpylori_result = 'high' THEN 1
-		WHEN hpylori_result = 'not high' THEN 0 
-		WHEN hpylori_result = 'error' THEN -1 
-		ELSE -2 -- if there are a lot of -2s then might be worth the time to go back and clean up the extra values a bit more
-	END) AS hpylori_active
-INTO #Hpylori_active
-FROM #Hpylori_all 
--- active infection (IgM, stool Ag, IgA, urea breath)
-WHERE hpylori_id IN (3007894, 3016100, 3018195, 36304847, 3013139, 3010921, 3011630, 3016410)
-GROUP BY pt_id 
+    pt_id,
+    hpylori_date,
+    hpylori_value,
+    hpylori_num,
+    hpylori_range_high,
+    hpylori_range_low,
+    hpylori_result,
+    hpylori_result_num,
+    hpylori_test
+INTO #Hpylori_type
+FROM #Hpylori_all
+WHERE rn_type = 1
+
+DROP TABLE IF EXISTS #Hpylori_pivot;
+SELECT 
+    e.pt_id,
+    MAX(e.hpylori_date) AS hpylori_earliest_date, -- this aggregate function will just select the first since they will all be the same
+    MAX(e.hpylori_value) AS hpylori_earliest_value,
+    MAX(e.hpylori_range_high) AS hpylori_earliest_range_high,
+    MAX(e.hpylori_range_low) AS hpylori_earliest_range_low,
+    MAX(e.hpylori_result_num) AS hpylori_earliest_result_num,
+    MAX(e.hpylori_test) AS hpylori_earliest_test,
+    MAX(CASE WHEN t.hpylori_test = 'stool' THEN t.hpylori_date ELSE NULL END) AS hpylori_stool_date,
+    MAX(CASE WHEN t.hpylori_test = 'stool' THEN t.hpylori_value END) AS hpylori_stool_value,
+    MAX(CASE WHEN t.hpylori_test = 'stool' THEN t.hpylori_range_high END) AS hpylori_stool_range_high,
+    MAX(CASE WHEN t.hpylori_test = 'stool' THEN t.hpylori_range_low END) AS hpylori_stool_range_low,
+
+    MAX(CASE WHEN t.hpylori_test = 'IgA' THEN t.hpylori_date END) AS hpylori_iga_date,
+    MAX(CASE WHEN t.hpylori_test = 'IgA' THEN t.hpylori_value END) AS hpylori_iga_value,
+    MAX(CASE WHEN t.hpylori_test = 'IgA' THEN t.hpylori_range_high END) AS hpylori_iga_range_high,
+    MAX(CASE WHEN t.hpylori_test = 'IgA' THEN t.hpylori_range_low END) AS hpylori_iga_range_low,
+
+    MAX(CASE WHEN t.hpylori_test = 'IgM' THEN t.hpylori_date END) AS hpylori_igm_date,
+    MAX(CASE WHEN t.hpylori_test = 'IgM' THEN t.hpylori_value END) AS hpylori_igm_value,
+    MAX(CASE WHEN t.hpylori_test = 'IgM' THEN t.hpylori_range_high END) AS hpylori_igm_range_high,
+    MAX(CASE WHEN t.hpylori_test = 'IgM' THEN t.hpylori_range_low END) AS hpylori_igm_range_low,
+
+    MAX(CASE WHEN t.hpylori_test = 'IgG' THEN t.hpylori_date END) AS hpylori_igg_date,
+    MAX(CASE WHEN t.hpylori_test = 'IgG' THEN t.hpylori_value END) AS hpylori_igg_value,
+    MAX(CASE WHEN t.hpylori_test = 'IgG' THEN t.hpylori_range_high END) AS hpylori_igg_range_high,
+    MAX(CASE WHEN t.hpylori_test = 'IgG' THEN t.hpylori_range_low END) AS hpylori_igg_range_low,
+
+    MAX(CASE WHEN t.hpylori_test = 'breath' THEN t.hpylori_date END) AS hpylori_breath_date,
+    MAX(CASE WHEN t.hpylori_test = 'breath' THEN t.hpylori_value END) AS hpylori_breath_value,
+    MAX(CASE WHEN t.hpylori_test = 'breath' THEN t.hpylori_range_high END) AS hpylori_breath_range_high,
+    MAX(CASE WHEN t.hpylori_test = 'breath' THEN t.hpylori_range_low END) AS hpylori_breath_range_low
+INTO #Hpylori_pivot
+FROM #Hpylori_earliest e 
+LEFT JOIN #Hpylori_type t 
+ON e.pt_id = t.pt_id 
+GROUP BY e.pt_id
 
 /* 
  * Generate temporary tables to get baseline and prior data by creating Common Table Expressions.
@@ -1108,7 +1209,7 @@ SELECT
 	b.bmi_num AS BMI_baseline,
 	b.bmi_value AS BMI_baseline_val,
 	b.bmi_date AS BMI_baseline_date,
-	
+
 	p.bmi_num AS BMI_prior,
 	p.bmi_value AS BMI_prior_val,
 	p.bmi_date AS BMI_prior_date,
@@ -1232,11 +1333,33 @@ SELECT
 	a1cp.hgba1c_date AS hgba1c_prior_date,
 	a1cp.hgba1c_range_high AS hgba1c_prior_range_high,
 	a1cp.hgba1c_range_low AS hgba1c_prior_range_low,
-
-	hhx.hpylori_dx_date,
-	hhx.hpylori_hx,
-	hactive.hpylori_active_date,
-	hactive.hpylori_active,
+ 
+	hp.hpylori_earliest_date, -- first positive value if there is a positive value
+	hp.hpylori_earliest_value,
+	hp.hpylori_earliest_range_high,
+	hp.hpylori_earliest_range_low,
+	hp.hpylori_earliest_result_num,
+	hp.hpylori_earliest_test,
+	hp.hpylori_stool_date,
+	hp.hpylori_stool_value,
+	hp.hpylori_stool_range_high,
+	hp.hpylori_stool_range_low,
+	hp.hpylori_iga_date,
+	hp.hpylori_iga_value,
+	hp.hpylori_iga_range_high,
+	hp.hpylori_iga_range_low,
+	hp.hpylori_igm_date,
+	hp.hpylori_igm_value,
+	hp.hpylori_igm_range_high,
+	hp.hpylori_igm_range_low,
+	hp.hpylori_igg_date,
+	hp.hpylori_igg_value,
+	hp.hpylori_igg_range_high,
+	hp.hpylori_igg_range_low,
+	hp.hpylori_breath_date,
+	hp.hpylori_breath_value,
+	hp.hpylori_breath_range_high,
+	hp.hpylori_breath_range_low,	
 
 	-- Comorbidities
 	gca.gastricca_start_date,
@@ -1314,8 +1437,7 @@ LEFT JOIN #LDL_prior lp ON e.visit_id = lp.visit_id AND lp.rn=1
 LEFT JOIN #Hgba1c_baseline a1cb ON e.visit_id = a1cb.visit_id AND a1cb.rn=1
 LEFT JOIN #Hgba1c_prior a1cp ON e.visit_id = a1cp.visit_id AND a1cp.rn=1 
 
-LEFT JOIN #Hpylori_hx hhx ON e.pt_id = hhx.pt_id 
-LEFT JOIN #Hpylori_active hactive ON e.pt_id = hactive.pt_id
+LEFT JOIN #Hpylori_pivot hp ON e.pt_id = hp.pt_id 
 
 LEFT JOIN #GastricCa gca ON e.pt_id = gca.pt_id 
 LEFT JOIN #EsophagealCa eca ON e.pt_id = eca.pt_id 
