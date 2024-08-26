@@ -4,6 +4,8 @@ data/
 # Ignore the batch sql files
 batch_*.sql
 
+.DS_Store
+._.DS_Store
 ._*
 settings.json
 
@@ -17,3 +19,7 @@ sql/temp.sql
 
 # Ignore attempted bash script 
 sql/extract_batch.sh
+
+# Ignore jupyter notebook checkpoints
+.ipynb_checkpoints/
+notebook/__pycache__*
