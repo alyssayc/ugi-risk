@@ -1,0 +1,35 @@
+==========================================
+Conditions 
+SNOMED code 
+==========================================
+Peptic ulcer 
+
+SNOMED 13200003 - includes stomach, duodenal and esophageal 
+
+ICD10 K25.* - gastric ulcer
+ICD10 K27.* - peptic ulcer
+
+----------------------------------
+
+Helicobacter-associated disease 6185008 - H.pylori associated colitis, gastritis, proctitis, infection caused by h.pylori
+
+ICD10 B96.81
+
+----------------------------------
+Coronary artery disease 
+
+ICD10 I25.* - chronic ischemic heart disease 
+SNOMED 53741008 - coronary arteriosclerosis 
+
+
+----------------------------------
+Tobacco use
+
+ICD10 Z72.0 - tobacco use 
+ICD10 F17.* - nicotine dependence 
+SNOMED 56294008 - nicotine dependence
+----------------------------------
+Alcohol use
+
+ICD10 F10.* - alcohol use 
+SNOMED 66590003 - alcohol dependence

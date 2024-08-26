@@ -1,0 +1,60 @@
+DOMAIN IDs 
+
+domain_id IN (
+--'Relationship',
+--'Condition/Meas',
+--'Condition Status',
+--'Device',
+--'Drug/Procedure',
+--'Episode',
+-- 'Meas/Procedure',
+-- 'Meas Value',
+--'Metadata',
+--'Modifier',
+--'Plan Stop Reason',
+-- 'Measurement'
+--'Procedure',
+--'Geography',
+--'Visit',
+--'Condition',
+--'Condition/Device',
+--'Device/Procedure',
+--'Provider',
+--'Gender',
+--'Unit',
+--'Regimen',
+--'Cost',
+--'Place of Service',
+--'Sponsor',
+--'Race',
+--'Meas Value Operator',
+--'Condition/Obs',
+--'Condition/Procedure',
+--'Drug',
+--'Specimen',
+--'Language',
+--'Route',
+--'Revenue Code',
+--'Plan',
+--'Currency',
+--'Spec Anatomic Site',
+--'Obs/Procedure',
+--'Payer',
+--'Note',
+--'Observation',
+--'Type Concept',
+--'Ethnicity'
+
+
+VISIT CONCEPT NAMES 
+`visit_occurence` | `xtn_visit_type_source_concept_name` | `visit_concept_name`
+    Mobile Unit Encounter	Mobile Unit
+    Telehealth Visit	Telehealth
+    Outpatient Visit	Outpatient Visit
+    Hospital Outpatient Visit	Outpatient Hospital
+    Inpatient Hospitalization	Inpatient Visit
+    Urgent Care Visit	Urgent Care Facility
+    Inpatient Hospitalization from ED Visit	Emergency Room and Inpatient Visit
+    ED Visit	Emergency Room Visit
+    Chart Documentation Event	Documentation procedure
+    No matching concept	No matching concept

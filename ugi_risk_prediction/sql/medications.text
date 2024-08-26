@@ -1,0 +1,111 @@
+==========================================
+Drug exposures
+
+==========================================
+DISTINCT xtn_drug_type_source_concept_name
+
+    Medication Order with Administration
+    Outpatient Medication Order with Dispense
+    Immunization Administration
+    Immunization from Procedure Order
+    Outpatient Medication Order
+    Medication Order with Dispense
+    Medication Order
+    Immunization from Medication Order
+    No matching concept
+
+DISTINCT xtn_pharmaceutical_class_source_concept_name
+
+    'NSAID,COX INHIBITOR-TYPE AND PROTON-PUMP INHIBITOR', 
+    'NSAID ANALGESIC AND NON-SALICYLATE ANALGESIC COMB', 
+    'NSAIDS (SYSTEMIC)-TOPICAL LOCAL ANESTHETIC COMBO', 
+    'ANALGESIC, SALICYLATE, BARBITURATE, XANTHINE COMB.', 
+    'SKELETAL MUSCLE RELAXANT,SALICYLAT,OPIOID ANALGESC', 
+    'TOPICAL ANTI-INFLAMMATORY, NSAIDS', 
+    'OPIOID ANALGESIC AND NSAID COMBINATION', 
+    'OPIOID AND SALICYLATE ANALGESICS,BARBIT,XANTHINE', 
+    'ANALGESICS, SALICYLATE AND NON-SALICYLATE COMB.', 
+    'NSAIDS,CYCLOOXYGENASE-2(COX-2) SELECTIVE INHIBITOR', 
+    'PROTON-PUMP INHIBITORS', 
+    'NSAIDS(COX NON-SPEC.INHIB)AND PROSTAGLANDIN ANALOG', 
+    'NSAID AND HISTAMINE H2 RECEPTOR ANTAGONIST COMB.', 
+    'NSAIDS, CYCLOOXYGENASE INHIBITOR TYPE ANALGESICS', 
+    'NSAIDS/DIETARY SUPPLEMENT COMBINATIONS', 
+    'ANALGESIC/ANTIPYRETICS,NON-SALICYLATE', 
+    'ANALGESIC,NSAID-1ST GEN.ANTIHISTAMINE,SEDATIVE CMB', 
+    'ANALGESIC/ANTIPYRETICS, SALICYLATES', 
+    'OPIOID ANALGESIC AND SALICYLATE ANALGESIC COMB', 
+
+Aspirin - all xtn_generic_ingredient_source_concept_name
+
+    'butalbital/aspirin/caffeine'
+    'ASA/acetaminophen/caffeine/pot'
+    'ASA/salicylam/acetaminoph/caff'
+    'aspirin'
+    'aspirin/acetaminophen/caffeine'
+    'aspirin/caffeine'
+    'aspirin/calcium carb/magnesium'
+    'aspirin/calcium carbonate'
+    'aspirin/calcium/mag/aluminum'
+    'aspirin/sod bicarb/citric acid'
+    'aspirin/acetaminophen/cal carb'
+    'aspirin/codeine phosphate'
+    'hydrocodone bitartrate/aspirin'
+    'oxycodone HCl,terephth/aspirin'
+    'oxycodone HCl/aspirin'
+    'codeine/butalbital/ASA/caffein'
+    'carisoprodol/aspirin/codeine'
+
+NSAIDS - all xtn_generic_ingredient_source_concept_name
+
+    'ibuprofen/diphenhydramine cit'
+    'ibuprofen/diphenhydramine HCl'
+    'naproxen sod/diphenhydramine'
+    'diflunisal'
+    'ibuprofen/acetaminophen'
+    'ibuprofen/famotidine'
+    'naproxen/esomeprazole mag'
+    'diclofenac sodium/misoprostol'
+    'diclofenac potassium'
+    'diclofenac sodium'
+    'diclofenac submicronized'
+    'etodolac'
+    'fenoprofen calcium'
+    'flurbiprofen'
+    'ibuprofen'
+    'ibuprofen/glycerin'
+    'indomethacin'
+    'indomethacin, submicronized'
+    'ketoprofen'
+    'ketorolac tromethamine'
+    'meclofenamate sodium'
+    'mefenamic acid'
+    'meloxicam'
+    'meloxicam, submicronized'
+    'nabumetone'
+    'naproxen'
+    'naproxen sodium'
+    'oxaprozin'
+    'piroxicam'
+    'sulindac'
+    'tolmetin sodium'
+    'celecoxib'
+    'Ibuprofen/Caff/B1/B2/B6/B12'
+    'hydrocodone/ibuprofen'
+    'ibuprofen/oxycodone HCl'
+    'tramadol HCl/celecoxib'
+
+PPIs - all xtn_generic_ingredient_source_concept_name
+
+    'naproxen/esomeprazole mag'
+    'dexlansoprazole'
+    'esomeprazole mag/glycerin'
+    'Esomeprazole Magnesium'
+    'esomeprazole sodium'
+    'esomeprazole strontium'
+    'lansoprazole'
+    'omeprazole'
+    'omeprazole magnesium'
+    'omeprazole/sodium bicarbonate'
+    'pantoprazole sodium'
+    'rabeprazole sodium'
