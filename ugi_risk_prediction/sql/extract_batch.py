@@ -13,7 +13,7 @@ config = {"caboodle": {
 
 # Change these to reflect which SQL file you want to read and where you want the results to be stored and which directory.
 sql_file_name = 'batch_2012-01-01_2012-01-10.sql'
-output_file_name = 'batch_2012-01-01_2012-01-10.csv.gz'
+output_file_name = 'data_20120101_20120110.csv.gz'
 output_path = Path(__file__).resolve().parent.parent / 'data' # Navigates up two parents from the current file and into the data dir
 
 # Read the SQL file  
