@@ -1,2 +1,19 @@
 # Ignore the data directory
 data/
+
+# Ignore the batch sql files
+batch_*.sql
+
+._*
+settings.json
+
+# Ignore the smaller queries
+sql/hpylori.sql
+sql/identify_concept_id.sql
+sql/identify_conditions.sql
+sql/identify_meds.sql
+sql/identify_observations.sql
+sql/temp.sql
+
+# Ignore attempted bash script 
+sql/extract_batch.sh
