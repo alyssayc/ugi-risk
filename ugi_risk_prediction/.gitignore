@@ -1,5 +1,7 @@
 # Ignore the data directory
-data/
+data/data_*
+data/ugi*
+data/all_data*
 
 # Ignore the batch sql files
 batch_*.sql
