@@ -20,7 +20,6 @@ INTO #Encounters
 FROM omop.cdm_phi.visit_occurrence e
 LEFT JOIN omop.cdm_phi.care_site c ON e.care_site_id = c.care_site_id 
 WHERE xtn_visit_type_source_concept_name IN ('Telehealth Visit', 'Outpatient Visit', 'Hospital Outpatient Visit', 'Inpatient Hospitalization', 'Inpatient Hospitalization from ED Visit', 'ED Visit')
--- AND visit_start_date BETWEEN '2012-01-01' AND '2023-03-30' 
 AND visit_start_date BETWEEN '{start_date}' AND '{end_date}' -- change me 
 
 /*
@@ -35,461 +34,61 @@ SELECT
 	race_c.concept_name as race,
 	ethnicity_c.concept_name as ethnicity,
 	xtn_preferred_language_source_concept_name as preferred_language,
-	p.xtn_patient_epic_mrn as mrn
+	p.xtn_patient_epic_mrn as mrn,
+	p.death_datetime as date_of_death
 INTO #Demographics
 FROM omop.cdm_phi.person p 
 INNER JOIN omop.cdm_phi.concept gender_c ON gender_c.concept_id = p.gender_concept_id 
 INNER JOIN omop.cdm_phi.concept race_c ON race_c.concept_id = p.race_concept_id
 INNER JOIN omop.cdm_phi.concept ethnicity_c ON ethnicity_c.concept_id = p.ethnicity_concept_id 
-WHERE person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+WHERE person_id IN (SELECT pt_id FROM #Encounters)
 
 /*
  * Measurement tables 
  */
 
-DROP TABLE IF EXISTS #BMI;
+DROP TABLE IF EXISTS #Labs;
 SELECT 
 	person_id as pt_id,
-	measurement_concept_id as bmi_id,
-	measurement_source_value as bmi_textid,
-	measurement_date as bmi_date,
-	value_as_number as bmi_num,
-	value_source_value as bmi_value,
-	unit_concept_code as bmi_unit
-INTO #BMI
+	measurement_concept_id,
+	measurement_source_value as lab_textid,
+	measurement_date as lab_date,
+	value_as_number as lab_num,
+	value_source_value as lab_value,
+	unit_concept_code as lab_unit
+INTO #Labs
 FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id = 3038553
+WHERE measurement_concept_id IN (
+	3038553 -- BMI
+	, 1616317, 3000963, 3004119, 3006239, 3002173, 46235392, 3027484 -- Hgb all 
+	, 3000963 -- Hgb 
+	, 3023599, 3024731 -- Mcv
+	, 3000905, 3010813 -- Wbc
+	, 3024929, 3031586, 3007461 -- Plt 
+	, 3019550, 3041473, 3043706 -- Sodium 
+	, 3023103, 3043409, 3041354, 3005456 -- Potassium
+	, 3014576, 3035285, 3031248, 3018572 -- Chloride
+	, 3008152, 3027273, 3015235 -- Bicarbonate
+	, 3013682, 3027219, 3004295, 3026617 -- BUN 
+	, 3016723, 3051825 -- SCr 
+	, 3001420, 3006916 -- Magnesium 
+	, 3006906 -- Calcium 
+	, 3011904 -- Phosphate 
+	, 3013721 -- AST 
+	, 3006923 -- ALT 
+	, 3035995 -- ALP 
+	, 3024128 -- TBili 
+	, 3024561 -- Albumin
+	, 3020630 -- Total protein 
+	, 3019170, 3019762, 3009201 -- TSH 
+	, 40765040, 3049536, 3020149, 3027361, 3006615, 3031700 -- Vitamin D 
+	, 3022192, 36660413 -- Triglycerides 
+	, 3028288, 3009966, 3028437 -- LDL 
+	, 3004410 -- HgbA1c 
+	, 3007894, 3016100, 3027491, 3023871, 40771569, 3018195, 36304847, 3013139, 3010921, 3011630, 3016410 -- HPylori 
+)
 AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
--- Includes blood gas hemoglobins
-DROP TABLE IF EXISTS #Hgb_all;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as hgball_id,
-	measurement_source_value as hgball_textid,
-	measurement_date as hgball_date,
-	value_as_number as hgball_num,
-	range_high as hgball_range_high,
-	range_low as hgball_range_low,
-	value_source_value as hgball_value,
-	unit_concept_code as hgball_unit
-INTO #Hgb_all
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (1616317, 3000963, 3004119, 3006239, 3002173, 46235392, 3027484)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
--- Excludes blood gas hemoglobins
-DROP TABLE IF EXISTS #Hgb;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as hgb_id,
-	measurement_source_value as hgb_textid,
-	measurement_date as hgb_date,
-	value_as_number as hgb_num,
-	range_high as hgb_range_high,
-	range_low as hgb_range_low,
-	value_source_value as hgb_value,
-	unit_concept_code as hgb_unit
-INTO #Hgb
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3000963)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Mcv;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as mcv_id,
-	measurement_source_value as mcv_textid,
-	measurement_date as mcv_date,
-	value_as_number as mcv_num,
-	range_high as mcv_range_high,
-	range_low as mcv_range_low,
-	value_source_value as mcv_value,
-	unit_concept_code as mcv_unit
-INTO #Mcv
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3023599, 3024731)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Wbc;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as wbc_id,
-	measurement_source_value as wbc_textid,
-	measurement_date as wbc_date,
-	value_as_number as wbc_num,
-	range_high as wbc_range_high,
-	range_low as wbc_range_low,
-	value_source_value as wbc_value,
-	unit_concept_code as wbc_unit
-INTO #Wbc
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3000905, 3010813)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Plt;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as plt_id,
-	measurement_source_value as plt_textid,
-	measurement_date as plt_date,
-	value_as_number as plt_num,
-	range_high as plt_range_high,
-	range_low as plt_range_low,
-	value_source_value as plt_value,
-	unit_concept_code as plt_unit
-INTO #Plt
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3024929, 3031586, 3007461)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Sodium;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as sodium_id,
-	measurement_source_value as sodium_textid,
-	measurement_date as sodium_date,
-	value_as_number as sodium_num,
-	range_high as sodium_range_high,
-	range_low as sodium_range_low,
-	value_source_value as sodium_value,
-	unit_concept_code as sodium_unit
-INTO #Sodium
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3019550, 3041473, 3043706)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Potassium;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as potassium_id,
-	measurement_source_value as potassium_textid,
-	measurement_date as potassium_date,
-	value_as_number as potassium_num,
-	range_high as potassium_range_high,
-	range_low as potassium_range_low,
-	value_source_value as potassium_value,
-	unit_concept_code as potassium_unit
-INTO #Potassium
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3023103, 3043409, 3041354, 3005456)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Chloride;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as chloride_id,
-	measurement_source_value as chloride_textid,
-	measurement_date as chloride_date,
-	value_as_number as chloride_num,
-	range_high as chloride_range_high,
-	range_low as chloride_range_low,
-	value_source_value as chloride_value,
-	unit_concept_code as chloride_unit
-INTO #Chloride
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3014576, 3035285, 3031248, 3018572)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Bicarbonate;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as bicarbonate_id,
-	measurement_source_value as bicarbonate_textid,
-	measurement_date as bicarbonate_date,
-	value_as_number as bicarbonate_num,
-	range_high as bicarbonate_range_high,
-	range_low as bicarbonate_range_low,
-	value_source_value as bicarbonate_value,
-	unit_concept_code as bicarbonate_unit
-INTO #Bicarbonate
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3008152, 3027273, 3015235)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #BUN;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as bun_id,
-	measurement_source_value as bun_textid,
-	measurement_date as bun_date,
-	value_as_number as bun_num,
-	range_high as bun_range_high,
-	range_low as bun_range_low,
-	value_source_value as bun_value,
-	unit_concept_code as bun_unit
-INTO #BUN
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3013682, 3027219, 3004295, 3026617)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #SCr;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as SCr_id,
-	measurement_source_value as SCr_textid,
-	measurement_date as SCr_date,
-	value_as_number as SCr_num,
-	range_high as SCr_range_high,
-	range_low as SCr_range_low,
-	value_source_value as SCr_value,
-	unit_concept_code as SCr_unit
-INTO #SCr
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3016723, 3051825)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Magnesium;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as magnesium_id,
-	measurement_source_value as magnesium_textid,
-	measurement_date as magnesium_date,
-	value_as_number as magnesium_num,
-	range_high as magnesium_range_high,
-	range_low as magnesium_range_low,
-	value_source_value as magnesium_value,
-	unit_concept_code as magnesium_unit
-INTO #Magnesium
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3001420, 3006916)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Calcium;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as calcium_id,
-	measurement_source_value as calcium_textid,
-	measurement_date as calcium_date,
-	value_as_number as calcium_num,
-	range_high as calcium_range_high,
-	range_low as calcium_range_low,
-	value_source_value as calcium_value,
-	unit_concept_code as calcium_unit
-INTO #Calcium
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3006906)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-
-DROP TABLE IF EXISTS #Phosphate;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as phosphate_id,
-	measurement_source_value as phosphate_textid,
-	measurement_date as phosphate_date,
-	value_as_number as phosphate_num,
-	range_high as phosphate_range_high,
-	range_low as phosphate_range_low,
-	value_source_value as phosphate_value,
-	unit_concept_code as phosphate_unit
-INTO #Phosphate
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3011904)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #AST;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as ast_id,
-	measurement_source_value as ast_textid,
-	measurement_date as ast_date,
-	value_as_number as ast_num,
-	range_high as ast_range_high,
-	range_low as ast_range_low,
-	value_source_value as ast_value,
-	unit_concept_code as ast_unit
-INTO #AST
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3013721)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #ALT;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as alt_id,
-	measurement_source_value as alt_textid,
-	measurement_date as alt_date,
-	value_as_number as alt_num,
-	range_high as alt_range_high,
-	range_low as alt_range_low,
-	value_source_value as alt_value,
-	unit_concept_code as alt_unit
-INTO #ALT
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3006923)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #ALP;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as alp_id,
-	measurement_source_value as alp_textid,
-	measurement_date as alp_date,
-	value_as_number as alp_num,
-	range_high as alp_range_high,
-	range_low as alp_range_low,
-	value_source_value as alp_value,
-	unit_concept_code as alp_unit
-INTO #ALP
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3035995)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #TBili;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as tbili_id,
-	measurement_source_value as tbili_textid,
-	measurement_date as tbili_date,
-	value_as_number as tbili_num,
-	range_high as tbili_range_high,
-	range_low as tbili_range_low,
-	value_source_value as tbili_value,
-	unit_concept_code as tbili_unit
-INTO #TBili
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3024128)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Albumin;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as albumin_id,
-	measurement_source_value as albumin_textid,
-	measurement_date as albumin_date,
-	value_as_number as albumin_num,
-	range_high as albumin_range_high,
-	range_low as albumin_range_low,
-	value_source_value as albumin_value,
-	unit_concept_code as albumin_unit
-INTO #Albumin
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3024561)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #TProtein;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as tprotein_id,
-	measurement_source_value as tprotein_textid,
-	measurement_date as tprotein_date,
-	value_as_number as tprotein_num,
-	range_high as tprotein_range_high,
-	range_low as tprotein_range_low,
-	value_source_value as tprotein_value,
-	unit_concept_code as tprotein_unit
-INTO #TProtein
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3020630)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #TSH;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as tsh_id,
-	measurement_source_value as tsh_textid,
-	measurement_date as tsh_date,
-	value_as_number as tsh_num,
-	range_high as tsh_range_high,
-	range_low as tsh_range_low,
-	value_source_value as tsh_value,
-	unit_concept_code as tsh_unit
-INTO #TSH
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3019170, 3019762, 3009201)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #vitD;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as vitD_id,
-	measurement_source_value as vitD_textid,
-	measurement_date as vitD_date,
-	value_as_number as vitD_num,
-	range_high as vitD_range_high,
-	range_low as vitD_range_low,
-	value_source_value as vitD_value,
-	unit_concept_code as vitD_unit
-INTO #vitD
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (40765040, 3049536, 3020149, 3027361, 3006615, 3031700)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Triglycerides;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as triglycerides_id,
-	measurement_source_value as triglycerides_textid,
-	measurement_date as triglycerides_date,
-	value_as_number as triglycerides_num,
-	range_high as triglycerides_range_high,
-	range_low as triglycerides_range_low,
-	value_source_value as triglycerides_value,
-	unit_concept_code as triglycerides_unit
-INTO #Triglycerides
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3022192, 36660413)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-
-DROP TABLE IF EXISTS #LDL;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as LDL_id,
-	measurement_source_value as LDL_textid,
-	measurement_date as LDL_date,
-	value_as_number as LDL_num,
-	range_high as LDL_range_high,
-	range_low as LDL_range_low,
-	value_source_value as LDL_value,
-	unit_concept_code as LDL_unit
-INTO #LDL
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3028288, 3009966, 3028437)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
-
-DROP TABLE IF EXISTS #Hgba1c;
-SELECT 
-	person_id as pt_id,
-	measurement_concept_id as hgba1c_id,
-	measurement_source_value as hgba1c_textid,
-	measurement_date as hgba1c_date,
-	value_as_number as hgba1c_num,
-	range_high as hgba1c_range_high,
-	range_low as hgba1c_range_low,
-	value_source_value as hgba1c_value,
-	unit_concept_code as hgba1c_unit
-INTO #Hgba1c
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3004410)
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND person_id IN (SELECT pt_id FROM #Demographics)
 
 DROP TABLE IF EXISTS #Hpylori_clean;
 SELECT 
@@ -582,10 +181,7 @@ SELECT
         WHEN measurement_concept_id = 3011630 THEN 'breath'
     END AS hpylori_test
 INTO #Hpylori_clean
-FROM omop.cdm_phi.measurement
-WHERE measurement_concept_id IN (3007894, 3016100, 3027491, 3023871, 40771569, 3018195, 36304847, 3013139, 3010921, 3011630, 3016410)
-AND measurement_date BETWEEN '2020-01-01' AND '2020-12-30' -- restrict to -15 months from encounter date; change me 
--- AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+FROM #Labs
 
 DROP TABLE IF EXISTS #Hpylori_all;
 SELECT 
@@ -682,882 +278,783 @@ DROP TABLE IF EXISTS #BMI_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.bmi_value,
-	b.bmi_num,
-	b.bmi_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.bmi_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #BMI_baseline
 FROM #Encounters e
-JOIN #BMI b 
-	ON e.pt_id = b.pt_id 
-	AND b.bmi_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3038553
 
 -- Get all BMIs within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #BMI_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.bmi_value,
-	b.bmi_num,
-	b.bmi_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.bmi_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #BMI_prior
 FROM #Encounters e
-JOIN #BMI b
-	ON e.pt_id = b.pt_id 
-	AND b.bmi_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id = 3038553
 
--- Get all Hgballs within 6 months prior to the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Hgball_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.hgball_value,
-	b.hgball_num,
-	b.hgball_range_high,
-	b.hgball_range_low,
-	b.hgball_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.hgball_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Hgball_baseline
 FROM #Encounters e
-JOIN #Hgb_all b
-	ON e.pt_id = b.pt_id 
-	AND b.hgball_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (1616317, 3000963, 3004119, 3006239, 3002173, 46235392, 3027484)
 
--- Get all Hgballs within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Hgball_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.hgball_value,
-	b.hgball_num,
-	b.hgball_range_high,
-	b.hgball_range_low,
-	b.hgball_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.hgball_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Hgball_prior
 FROM #Encounters e
-JOIN #Hgb_all b
-	ON e.pt_id = b.pt_id 
-	AND b.hgball_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (1616317, 3000963, 3004119, 3006239, 3002173, 46235392, 3027484)
 
--- Get all Hgbs within 6 months prior to the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Hgb_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.hgb_value,
-	b.hgb_num,
-	b.hgb_range_high,
-	b.hgb_range_low,
-	b.hgb_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.hgb_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Hgb_baseline
 FROM #Encounters e
-JOIN #Hgb b
-	ON e.pt_id = b.pt_id 
-	AND b.hgb_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3000963
 
--- Get all Hgbs within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Hgb_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.hgb_value,
-	b.hgb_num,
-	b.hgb_range_high,
-	b.hgb_range_low,
-	b.hgb_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.hgb_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Hgb_prior
 FROM #Encounters e
-JOIN #Hgb b
-	ON e.pt_id = b.pt_id 
-	AND b.hgb_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id = 3000963
 
--- Get all Mcvs within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Mcv_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.mcv_value,
-	b.mcv_num,
-	b.mcv_range_high,
-	b.mcv_range_low,
-	b.mcv_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.mcv_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Mcv_baseline
 FROM #Encounters e
-JOIN #Mcv b 
-	ON e.pt_id = b.pt_id 
-	AND b.mcv_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3023599, 3024731)
 
--- Get all Mcvs within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Mcv_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.mcv_value,
-	b.mcv_num,
-	b.mcv_range_high,
-	b.mcv_range_low,
-	b.mcv_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.mcv_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Mcv_prior
 FROM #Encounters e
-JOIN #Mcv b 
-	ON e.pt_id = b.pt_id 
-	AND b.mcv_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3023599, 3024731)
 
-
--- Get all wbcs within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Wbc_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.wbc_value,
-	b.wbc_num,
-	b.wbc_range_high,
-	b.wbc_range_low,
-	b.wbc_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.wbc_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Wbc_baseline
 FROM #Encounters e
-JOIN #Wbc b 
-	ON e.pt_id = b.pt_id 
-	AND b.wbc_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3000905, 3010813)
 
--- Get all wbcs within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Wbc_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.wbc_value,
-	b.wbc_num,
-	b.wbc_range_high,
-	b.wbc_range_low,
-	b.wbc_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.wbc_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Wbc_prior
 FROM #Encounters e
-JOIN #Wbc b 
-	ON e.pt_id = b.pt_id 
-	AND b.wbc_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3000905, 3010813)
 
--- Get all plts within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Plt_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.plt_value,
-	b.plt_num,
-	b.plt_range_high,
-	b.plt_range_low,
-	b.plt_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.plt_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Plt_baseline
 FROM #Encounters e
-JOIN #Plt b 
-	ON e.pt_id = b.pt_id 
-	AND b.plt_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3024929, 3031586, 3007461)
 
--- Get all plts within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Plt_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.plt_value,
-	b.plt_num,
-	b.plt_range_high,
-	b.plt_range_low,
-	b.plt_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.plt_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Plt_prior
 FROM #Encounters e
-JOIN #Plt b 
-	ON e.pt_id = b.pt_id 
-	AND b.plt_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3024929, 3031586, 3007461)
 
--- Get all sodiums within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Sodium_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.sodium_value,
-	b.sodium_num,
-	b.sodium_range_high,
-	b.sodium_range_low,
-	b.sodium_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.sodium_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Sodium_baseline
 FROM #Encounters e
-JOIN #Sodium b 
-	ON e.pt_id = b.pt_id 
-	AND b.sodium_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3019550, 3041473, 3043706)
 
--- Get all sodiums within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Sodium_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.sodium_value,
-	b.sodium_num,
-	b.sodium_range_high,
-	b.sodium_range_low,
-	b.sodium_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.sodium_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Sodium_prior
 FROM #Encounters e
-JOIN #Sodium b 
-	ON e.pt_id = b.pt_id 
-	AND b.sodium_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3019550, 3041473, 3043706)
 
--- Get all potassiums within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Potassium_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.potassium_value,
-	b.potassium_num,
-	b.potassium_range_high,
-	b.potassium_range_low,
-	b.potassium_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.potassium_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Potassium_baseline
 FROM #Encounters e
-JOIN #Potassium b 
-	ON e.pt_id = b.pt_id 
-	AND b.potassium_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3023103, 3043409, 3041354, 3005456)
 
--- Get all potassiums within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Potassium_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.potassium_value,
-	b.potassium_num,
-	b.potassium_range_high,
-	b.potassium_range_low,
-	b.potassium_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.potassium_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Potassium_prior
 FROM #Encounters e
-JOIN #Potassium b 
-	ON e.pt_id = b.pt_id 
-	AND b.potassium_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3023103, 3043409, 3041354, 3005456)
 
--- Get all chlorides within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Chloride_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.chloride_value,
-	b.chloride_num,
-	b.chloride_range_high,
-	b.chloride_range_low,
-	b.chloride_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.chloride_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Chloride_baseline
 FROM #Encounters e
-JOIN #Chloride b 
-	ON e.pt_id = b.pt_id 
-	AND b.chloride_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3014576, 3035285, 3031248, 3018572)
 
--- Get all chlorides within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Chloride_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.chloride_value,
-	b.chloride_num,
-	b.chloride_range_high,
-	b.chloride_range_low,
-	b.chloride_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.chloride_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Chloride_prior
 FROM #Encounters e
-JOIN #Chloride b 
-	ON e.pt_id = b.pt_id 
-	AND b.chloride_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3014576, 3035285, 3031248, 3018572)
 
--- Get all bicarbonates within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Bicarbonate_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.bicarbonate_value,
-	b.bicarbonate_num,
-	b.bicarbonate_range_high,
-	b.bicarbonate_range_low,
-	b.bicarbonate_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.bicarbonate_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Bicarbonate_baseline
 FROM #Encounters e
-JOIN #Bicarbonate b 
-	ON e.pt_id = b.pt_id 
-	AND b.bicarbonate_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3008152, 3027273, 3015235)
 
--- Get all bicarbonates within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Bicarbonate_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.bicarbonate_value,
-	b.bicarbonate_num,
-	b.bicarbonate_range_high,
-	b.bicarbonate_range_low,
-	b.bicarbonate_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.bicarbonate_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Bicarbonate_prior
 FROM #Encounters e
-JOIN #Bicarbonate b 
-	ON e.pt_id = b.pt_id 
-	AND b.bicarbonate_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3008152, 3027273, 3015235)
 
--- Get all buns within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #BUN_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.bun_value,
-	b.bun_num,
-	b.bun_range_high,
-	b.bun_range_low,
-	b.bun_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.bun_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #BUN_baseline
 FROM #Encounters e
-JOIN #BUN b 
-	ON e.pt_id = b.pt_id 
-	AND b.bun_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3013682, 3027219, 3004295, 3026617)
 
--- Get all buns within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #BUN_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.bun_value,
-	b.bun_num,
-	b.bun_range_high,
-	b.bun_range_low,
-	b.bun_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.bun_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #BUN_prior
 FROM #Encounters e
-JOIN #BUN b 
-	ON e.pt_id = b.pt_id 
-	AND b.bun_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3013682, 3027219, 3004295, 3026617)
 
--- Get all scrs within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #SCr_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.scr_value,
-	b.scr_num,
-	b.scr_range_high,
-	b.scr_range_low,
-	b.scr_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.scr_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #SCr_baseline
 FROM #Encounters e
-JOIN #SCr b 
-	ON e.pt_id = b.pt_id 
-	AND b.scr_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3016723, 3051825)
 
--- Get all scrs within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #SCr_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.scr_value,
-	b.scr_num,
-	b.scr_range_high,
-	b.scr_range_low,
-	b.scr_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.scr_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #SCr_prior
 FROM #Encounters e
-JOIN #SCr b 
-	ON e.pt_id = b.pt_id 
-	AND b.scr_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3016723, 3051825)
 
--- Get all magnesiums within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Magnesium_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.magnesium_value,
-	b.magnesium_num,
-	b.magnesium_range_high,
-	b.magnesium_range_low,
-	b.magnesium_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.magnesium_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Magnesium_baseline
 FROM #Encounters e
-JOIN #Magnesium b 
-	ON e.pt_id = b.pt_id 
-	AND b.magnesium_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3001420, 3006916)
 
--- Get all magnesiums within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Magnesium_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.magnesium_value,
-	b.magnesium_num,
-	b.magnesium_range_high,
-	b.magnesium_range_low,
-	b.magnesium_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.magnesium_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Magnesium_prior
 FROM #Encounters e
-JOIN #Magnesium b 
-	ON e.pt_id = b.pt_id 
-	AND b.magnesium_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3001420, 3006916)
 
-
--- Get all calciums within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Calcium_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.calcium_value,
-	b.calcium_num,
-	b.calcium_range_high,
-	b.calcium_range_low,
-	b.calcium_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.calcium_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Calcium_baseline
 FROM #Encounters e
-JOIN #Calcium b 
-	ON e.pt_id = b.pt_id 
-	AND b.calcium_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3006906
 
--- Get all calciums within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Calcium_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.calcium_value,
-	b.calcium_num,
-	b.calcium_range_high,
-	b.calcium_range_low,
-	b.calcium_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.calcium_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Calcium_prior
 FROM #Encounters e
-JOIN #Calcium b 
-	ON e.pt_id = b.pt_id 
-	AND b.calcium_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id = 3006906
 
--- Get all phosphates within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Phosphate_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.phosphate_value,
-	b.phosphate_num,
-	b.phosphate_range_high,
-	b.phosphate_range_low,
-	b.phosphate_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.phosphate_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Phosphate_baseline
 FROM #Encounters e
-JOIN #Phosphate b 
-	ON e.pt_id = b.pt_id 
-	AND b.phosphate_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3011904
 
--- Get all phosphates within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Phosphate_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.phosphate_value,
-	b.phosphate_num,
-	b.phosphate_range_high,
-	b.phosphate_range_low,
-	b.phosphate_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.phosphate_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Phosphate_prior
 FROM #Encounters e
-JOIN #Phosphate b 
-	ON e.pt_id = b.pt_id 
-	AND b.phosphate_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id = 3011904
 
--- Get all asts within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #AST_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.ast_value,
-	b.ast_num,
-	b.ast_range_high,
-	b.ast_range_low,
-	b.ast_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.ast_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #AST_baseline
 FROM #Encounters e
-JOIN #AST b 
-	ON e.pt_id = b.pt_id 
-	AND b.ast_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3013721
 
--- Get all asts within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #AST_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.ast_value,
-	b.ast_num,
-	b.ast_range_high,
-	b.ast_range_low,
-	b.ast_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.ast_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #AST_prior
 FROM #Encounters e
-JOIN #AST b 
-	ON e.pt_id = b.pt_id 
-	AND b.ast_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id = 3013721
 
--- Get all alts within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #ALT_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.alt_value,
-	b.alt_num,
-	b.alt_range_high,
-	b.alt_range_low,
-	b.alt_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.alt_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #ALT_baseline
 FROM #Encounters e
-JOIN #ALT b 
-	ON e.pt_id = b.pt_id 
-	AND b.alt_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3006923
 
--- Get all alts within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #ALT_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.alt_value,
-	b.alt_num,
-	b.alt_range_high,
-	b.alt_range_low,
-	b.alt_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.alt_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #ALT_prior
 FROM #Encounters e
-JOIN #ALT b 
-	ON e.pt_id = b.pt_id 
-	AND b.alt_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id = 3006923
 
--- Get all alps within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #ALP_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.alp_value,
-	b.alp_num,
-	b.alp_range_high,
-	b.alp_range_low,
-	b.alp_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.alp_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #ALP_baseline
 FROM #Encounters e
-JOIN #ALP b 
-	ON e.pt_id = b.pt_id 
-	AND b.alp_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3035995
 
--- Get all alps within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #ALP_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.alp_value,
-	b.alp_num,
-	b.alp_range_high,
-	b.alp_range_low,
-	b.alp_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.alp_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #ALP_prior
 FROM #Encounters e
-JOIN #ALP b 
-	ON e.pt_id = b.pt_id 
-	AND b.alp_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id = 3035995
 
--- Get all tbilis within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #TBili_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.tbili_value,
-	b.tbili_num,
-	b.tbili_range_high,
-	b.tbili_range_low,
-	b.tbili_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.tbili_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #TBili_baseline
 FROM #Encounters e
-JOIN #TBili b 
-	ON e.pt_id = b.pt_id 
-	AND b.tbili_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3024128
 
--- Get all tbilis within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #TBili_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.tbili_value,
-	b.tbili_num,
-	b.tbili_range_high,
-	b.tbili_range_low,
-	b.tbili_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.tbili_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #TBili_prior
 FROM #Encounters e
-JOIN #TBili b 
-	ON e.pt_id = b.pt_id 
-	AND b.tbili_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id = 3024128
 
--- Get all albumins within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Albumin_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.albumin_value,
-	b.albumin_num,
-	b.albumin_range_high,
-	b.albumin_range_low,
-	b.albumin_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.albumin_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Albumin_baseline
 FROM #Encounters e
-JOIN #Albumin b 
-	ON e.pt_id = b.pt_id 
-	AND b.albumin_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3024561
 
--- Get all albumins within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Albumin_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.albumin_value,
-	b.albumin_num,
-	b.albumin_range_high,
-	b.albumin_range_low,
-	b.albumin_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.albumin_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Albumin_prior
 FROM #Encounters e
-JOIN #Albumin b 
-	ON e.pt_id = b.pt_id 
-	AND b.albumin_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id = 3024561
 
--- Get all tproteins within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #TProtein_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.tprotein_value,
-	b.tprotein_num,
-	b.tprotein_range_high,
-	b.tprotein_range_low,
-	b.tprotein_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.tprotein_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #TProtein_baseline
 FROM #Encounters e
-JOIN #TProtein b 
-	ON e.pt_id = b.pt_id 
-	AND b.tprotein_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3020630
 
--- Get all tproteins within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #TProtein_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.tprotein_value,
-	b.tprotein_num,
-	b.tprotein_range_high,
-	b.tprotein_range_low,
-	b.tprotein_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.tprotein_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #TProtein_prior
 FROM #Encounters e
-JOIN #TProtein b 
-	ON e.pt_id = b.pt_id 
-	AND b.tprotein_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id = 3020630
 
--- Get all tshs within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #TSH_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.tsh_value,
-	b.tsh_num,
-	b.tsh_range_high,
-	b.tsh_range_low,
-	b.tsh_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.tsh_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #TSH_baseline
 FROM #Encounters e
-JOIN #TSH b 
-	ON e.pt_id = b.pt_id 
-	AND b.tsh_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3019170, 3019762, 3009201)
 
--- Get all tshs within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #TSH_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.tsh_value,
-	b.tsh_num,
-	b.tsh_range_high,
-	b.tsh_range_low,
-	b.tsh_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.tsh_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #TSH_prior
 FROM #Encounters e
-JOIN #TSH b 
-	ON e.pt_id = b.pt_id 
-	AND b.tsh_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3019170, 3019762, 3009201)
 
--- Get all vitDs within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #vitD_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.vitD_value,
-	b.vitD_num,
-	b.vitD_range_high,
-	b.vitD_range_low,
-	b.vitD_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.vitD_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #vitD_baseline
 FROM #Encounters e
-JOIN #vitD b 
-	ON e.pt_id = b.pt_id 
-	AND b.vitD_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (40765040, 3049536, 3020149, 3027361, 3006615, 3031700)
 
--- Get all vitDs within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #vitD_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.vitD_value,
-	b.vitD_num,
-	b.vitD_range_high,
-	b.vitD_range_low,
-	b.vitD_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.vitD_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #vitD_prior
 FROM #Encounters e
-JOIN #vitD b 
-	ON e.pt_id = b.pt_id 
-	AND b.vitD_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (40765040, 3049536, 3020149, 3027361, 3006615, 3031700)
 
--- Get all triglyceridess within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #Triglycerides_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.triglycerides_value,
-	b.triglycerides_num,
-	b.triglycerides_range_high,
-	b.triglycerides_range_low,
-	b.triglycerides_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.triglycerides_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Triglycerides_baseline
 FROM #Encounters e
-JOIN #Triglycerides b 
-	ON e.pt_id = b.pt_id 
-	AND b.triglycerides_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3022192, 36660413)
 
--- Get all triglyceridess within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Triglycerides_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.triglycerides_value,
-	b.triglycerides_num,
-	b.triglycerides_range_high,
-	b.triglycerides_range_low,
-	b.triglycerides_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.triglycerides_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Triglycerides_prior
 FROM #Encounters e
-JOIN #Triglycerides b 
-	ON e.pt_id = b.pt_id 
-	AND b.triglycerides_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3022192, 36660413)
 
--- Get all LDLs within 6 months of the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #LDL_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.LDL_value,
-	b.LDL_num,
-	b.LDL_range_high,
-	b.LDL_range_low,
-	b.LDL_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.LDL_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #LDL_baseline
 FROM #Encounters e
-JOIN #LDL b 
-	ON e.pt_id = b.pt_id 
-	AND b.LDL_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id IN (3028288, 3009966, 3028437)
 
--- Get all LDLs within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #LDL_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.LDL_value,
-	b.LDL_num,
-	b.LDL_range_high,
-	b.LDL_range_low,
-	b.LDL_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.LDL_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #LDL_prior
 FROM #Encounters e
-JOIN #LDL b 
-	ON e.pt_id = b.pt_id 
-	AND b.LDL_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id IN (3028288, 3009966, 3028437)
 
--- Get all hgba1cs within 6 months of the visit date and order by the value closest to the visit date 
+
 DROP TABLE IF EXISTS #Hgba1c_baseline;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.hgba1c_value,
-	b.hgba1c_num,
-	b.hgba1c_range_high,
-	b.hgba1c_range_low,
-	b.hgba1c_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, b.hgba1c_date))) AS rn
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
 INTO #Hgba1c_baseline
 FROM #Encounters e
-JOIN #Hgba1c b 
-	ON e.pt_id = b.pt_id 
-	AND b.hgba1c_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3004410
 
--- Get all hgba1cs within 9-15 months and order by value closest to 12 months prior
 DROP TABLE IF EXISTS #Hgba1c_prior;
 SELECT e.visit_id,
 	e.pt_id,
 	e.visit_start_date,
-	b.hgba1c_value,
-	b.hgba1c_num,
-	b.hgba1c_range_high,
-	b.hgba1c_range_low,
-	b.hgba1c_date,
-	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), b.hgba1c_date))) AS rn 
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, DATEADD(month, -12, e.visit_start_date), l.lab_date))) AS rn 
 INTO #Hgba1c_prior
 FROM #Encounters e
-JOIN #Hgba1c b 
-	ON e.pt_id = b.pt_id 
-	AND b.hgba1c_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -15, e.visit_start_date) AND DATEADD(month, -9, e.visit_start_date)
+	AND l.measurement_concept_id = 3004410
 
 /*
  * Comorbidities
@@ -1584,7 +1081,7 @@ INTO #GastricCa
 FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '363349007' OR id.icd10 LIKE 'C16.%'
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND person_id IN (SELECT pt_id FROM #Demographics)
 AND condition_start_date <= '{end_date}' -- change me to the last encounter date
 GROUP BY person_id
 
@@ -1598,7 +1095,7 @@ INTO #EsophagealCa
 FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '126817006' OR id.icd10 LIKE 'C15.%'
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND person_id IN (SELECT pt_id FROM #Demographics)
 AND condition_start_date <= '{end_date}' -- change me to the last encounter date
 GROUP BY person_id
 
@@ -1612,7 +1109,7 @@ INTO #HNCancer
 FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '255055008' OR id.icd10 LIKE 'C76.0'
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND person_id IN (SELECT pt_id FROM #Demographics)
 AND condition_start_date <= '{end_date}' -- change me to the last encounter date
 GROUP BY person_id
 
@@ -1626,7 +1123,7 @@ INTO #Achalasia
 FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '48531003' OR id.icd10 LIKE 'K22.0'
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND person_id IN (SELECT pt_id FROM #Demographics)
 AND condition_start_date <= '{end_date}' -- change me to the last encounter date
 GROUP BY person_id
 
@@ -1640,7 +1137,7 @@ INTO #PUD
 FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '13200003' OR id.icd10 LIKE 'K25.%' OR id.icd10 LIKE 'K27.%'
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND person_id IN (SELECT pt_id FROM #Demographics)
 AND condition_start_date <= '{end_date}' -- change me to the last encounter date
 GROUP BY person_id
 
@@ -1654,7 +1151,7 @@ INTO #GERD
 FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '235595009' OR id.icd10 LIKE 'K21.%'
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND person_id IN (SELECT pt_id FROM #Demographics)
 AND condition_start_date <= '{end_date}' -- change me to the last encounter date
 GROUP BY person_id
 
@@ -1668,7 +1165,7 @@ INTO #Hpylori_ICD
 FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '13200003' OR id.icd10 LIKE 'K25.%' OR id.icd10 LIKE 'K27.%'
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND person_id IN (SELECT pt_id FROM #Demographics)
 AND condition_start_date <= '{end_date}' -- change me to the last encounter date
 GROUP BY person_id
 
@@ -1682,7 +1179,7 @@ INTO #CAD
 FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '53741008' OR id.icd10 LIKE 'I25.%'
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND person_id IN (SELECT pt_id FROM #Demographics)
 AND condition_start_date <= '{end_date}' -- change me to the last encounter date
 GROUP BY person_id
 
@@ -1696,7 +1193,7 @@ INTO #Tobacco_ICD
 FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '56294008' OR id.icd10 = 'Z72.0' OR id.icd10 LIKE 'F17.%'
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND person_id IN (SELECT pt_id FROM #Demographics)
 AND condition_start_date <= '{end_date}' -- change me to the last encounter date
 GROUP BY person_id
 
@@ -1710,7 +1207,7 @@ INTO #Alcohol_ICD
 FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed = '66590003' OR id.icd10 LIKE 'F10.%'
-AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+AND person_id IN (SELECT pt_id FROM #Demographics)
 AND condition_start_date <= '{end_date}' -- change me to the last encounter date
 GROUP BY person_id
 
@@ -1744,7 +1241,7 @@ INTO #Famhx_cancer
 FROM omop.cdm_phi.observation 
 WHERE (observation_concept_name = 'Family history with explicit context' 
     OR  observation_concept_name = 'Family history of clinical finding') 
-    AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+    AND person_id IN (SELECT pt_id FROM #Encounters)
 GROUP BY person_id
 
 /*
@@ -1765,7 +1262,7 @@ FROM (
         xtn_value_as_source_concept_name AS social_language
     FROM omop.cdm_phi.observation 
     WHERE observation_concept_name = 'Language preference'
-        AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+        AND person_id IN (SELECT pt_id FROM #Encounters)
 ) a 
 GROUP BY pt_id, social_language 
 
@@ -1782,7 +1279,7 @@ FROM (
         xtn_value_as_source_concept_name AS social_race
     FROM omop.cdm_phi.observation 
     WHERE observation_concept_name IN ('Race or ethnicity', 'Race','Tabulated race [CDC]')
-        AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+        AND person_id IN (SELECT pt_id FROM #Encounters)
 ) a 
 GROUP BY pt_id, social_race 
 
@@ -1799,7 +1296,7 @@ FROM (
         xtn_value_as_source_concept_name AS social_ethnicity
     FROM omop.cdm_phi.observation 
     WHERE observation_concept_name IN ('Race or ethnicity', 'Tabulated ethnicity [CDC]', 'Ethnic background', 'Ethnic group')
-        AND person_id IN (SELECT DISTINCT pt_id FROM #Encounters)
+        AND person_id IN (SELECT pt_id FROM #Encounters)
 ) a 
 GROUP BY pt_id, social_ethnicity 
 
@@ -1917,7 +1414,7 @@ INTO #Meds
 FROM omop.cdm_phi.drug_exposure 
 WHERE xtn_pharmaceutical_class_source_concept_name IN ('NSAID,COX INHIBITOR-TYPE AND PROTON-PUMP INHIBITOR', 'NSAID ANALGESIC AND NON-SALICYLATE ANALGESIC COMB', 'NSAIDS (SYSTEMIC)-TOPICAL LOCAL ANESTHETIC COMBO', 'ANALGESIC, SALICYLATE, BARBITURATE, XANTHINE COMB.', 'SKELETAL MUSCLE RELAXANT,SALICYLAT,OPIOID ANALGESC', 'TOPICAL ANTI-INFLAMMATORY, NSAIDS', 'OPIOID ANALGESIC AND NSAID COMBINATION', 'OPIOID AND SALICYLATE ANALGESICS,BARBIT,XANTHINE', 'ANALGESICS, SALICYLATE AND NON-SALICYLATE COMB.', 'NSAIDS,CYCLOOXYGENASE-2(COX-2) SELECTIVE INHIBITOR', 'PROTON-PUMP INHIBITORS', 'NSAIDS(COX NON-SPEC.INHIB)AND PROSTAGLANDIN ANALOG', 'NSAID AND HISTAMINE H2 RECEPTOR ANTAGONIST COMB.', 'NSAIDS, CYCLOOXYGENASE INHIBITOR TYPE ANALGESICS', 'NSAIDS/DIETARY SUPPLEMENT COMBINATIONS', 'ANALGESIC/ANTIPYRETICS,NON-SALICYLATE', 'ANALGESIC,NSAID-1ST GEN.ANTIHISTAMINE,SEDATIVE CMB', 'ANALGESIC/ANTIPYRETICS, SALICYLATES', 'OPIOID ANALGESIC AND SALICYLATE ANALGESIC COMB')
     AND xtn_drug_default_route_source_concept_name IN ('oral', 'intravenous')
-    AND person_id IN (SELECT DISTINCT pt_id FROM #Demographics)
+    AND person_id IN (SELECT pt_id FROM #Demographics)
 GROUP BY person_id 
 
 /*
@@ -1936,6 +1433,7 @@ SELECT
 		ELSE 0 END)
 		AS age, 
 	d.dob,
+	d.date_of_death,
 	d.race,
 	d.ethnicity,
 	d.preferred_language,
@@ -1969,314 +1467,214 @@ SELECT
 	e.visit_start_date_minus_18mo,
 
 	-- Measurements, baseline and prior 
-	b.bmi_num AS BMI_baseline,
-	b.bmi_value AS BMI_baseline_val,
-	b.bmi_date AS BMI_baseline_date,
+	b.lab_num AS BMI_baseline,
+	b.lab_value AS BMI_baseline_val,
+	b.lab_date AS BMI_baseline_date,
 
-	p.bmi_num AS BMI_prior,
-	p.bmi_value AS BMI_prior_val,
-	p.bmi_date AS BMI_prior_date,
+	p.lab_num AS BMI_prior,
+	p.lab_value AS BMI_prior_val,
+	p.lab_date AS BMI_prior_date,
 
-	hab.hgball_num AS hgball_baseline,
-	hab.hgball_value AS hgball_baseline_val,
-	hab.hgball_date AS hgball_baseline_date,
-	hab.hgball_range_high AS hgball_baseline_range_high,
-	hab.hgball_range_low AS hgball_baseline_range_low,
-
-	hap.hgball_num AS hgball_prior,
-	hap.hgball_value AS hgball_prior_val,
-	hap.hgball_date AS hgball_prior_date,
-	hap.hgball_range_high AS hgball_prior_range_high,
-	hap.hgball_range_low AS hgball_prior_range_low,
-
-	hb.hgb_num AS hgb_baseline,
-	hb.hgb_value AS hgb_baseline_val,
-	hb.hgb_date AS hgb_baseline_date,
-	hb.hgb_range_high AS hgb_baseline_range_high,
-	hb.hgb_range_low AS hgb_baseline_range_low,
-
-	hp.hgb_num AS hgb_prior,
-	hp.hgb_value AS hgb_prior_val,
-	hp.hgb_date AS hgb_prior_date,
-	hp.hgb_range_high AS hgb_prior_range_high,
-	hp.hgb_range_low AS hgb_prior_range_low,
-
-	mb.mcv_num AS mcv_baseline,
-	mb.mcv_value AS mcv_baseline_val,
-	mb.mcv_date AS mcv_baseline_date,
-	mb.mcv_range_high AS mcv_baseline_range_high,
-	mb.mcv_range_low AS mcv_baseline_range_low,
-
-	mp.mcv_num AS mcv_prior,
-	mp.mcv_value AS mcv_prior_val,
-	mp.mcv_date AS mcv_prior_date,
-	mp.mcv_range_high AS mcv_prior_range_high,
-	mp.mcv_range_low AS mcv_prior_range_low,
-
-	wb.wbc_num AS wbc_baseline,
-	wb.wbc_value AS wbc_baseline_val,
-	wb.wbc_date AS wbc_baseline_date,
-	wb.wbc_range_high AS wbc_baseline_range_high,
-	wb.wbc_range_low AS wbc_baseline_range_low,
-
-	wp.wbc_num AS wbc_prior,
-	wp.wbc_value AS wbc_prior_val,
-	wp.wbc_date AS wbc_prior_date,
-	wp.wbc_range_high AS wbc_prior_range_high,
-	wp.wbc_range_low AS wbc_prior_range_low,
-
-	pb.plt_num AS plt_baseline,
-	pb.plt_value AS plt_baseline_val,
-	pb.plt_date AS plt_baseline_date,
-	pb.plt_range_high AS plt_baseline_range_high,
-	pb.plt_range_low AS plt_baseline_range_low,
-
-	pp.plt_num AS plt_prior,
-	pp.plt_value AS plt_prior_val,
-	pp.plt_date AS plt_prior_date,
-	pp.plt_range_high AS plt_prior_range_high,
-	pp.plt_range_low AS plt_prior_range_low,
-
-	sb.sodium_num AS sodium_baseline,
-	sb.sodium_value AS sodium_baseline_val,
-	sb.sodium_date AS sodium_baseline_date,
-	sb.sodium_range_high AS sodium_baseline_range_high,
-	sb.sodium_range_low AS sodium_baseline_range_low,
-
-	sp.sodium_num AS sodium_prior,
-	sp.sodium_value AS sodium_prior_val,
-	sp.sodium_date AS sodium_prior_date,
-	sp.sodium_range_high AS sodium_prior_range_high,
-	sp.sodium_range_low AS sodium_prior_range_low,
+	hab.lab_num AS hgball_baseline,
+	hab.lab_value AS hgball_baseline_val,
+	hab.lab_date AS hgball_baseline_date,
 	
-	kb.potassium_num AS potassium_baseline,
-	kb.potassium_value AS potassium_baseline_val,
-	kb.potassium_date AS potassium_baseline_date,
-	kb.potassium_range_high AS potassium_baseline_range_high,
-	kb.potassium_range_low AS potassium_baseline_range_low,
-
-	kp.potassium_num AS potassium_prior,
-	kp.potassium_value AS potassium_prior_val,
-	kp.potassium_date AS potassium_prior_date,
-	kp.potassium_range_high AS potassium_prior_range_high,
-	kp.potassium_range_low AS potassium_prior_range_low,
-
-	clb.chloride_num AS chloride_baseline,
-	clb.chloride_value AS chloride_baseline_val,
-	clb.chloride_date AS chloride_baseline_date,
-	clb.chloride_range_high AS chloride_baseline_range_high,
-	clb.chloride_range_low AS chloride_baseline_range_low,
-
-	clp.chloride_num AS chloride_prior,
-	clp.chloride_value AS chloride_prior_val,
-	clp.chloride_date AS chloride_prior_date,
-	clp.chloride_range_high AS chloride_prior_range_high,
-	clp.chloride_range_low AS chloride_prior_range_low,
-
-	bicb.bicarbonate_num AS bicarbonate_baseline,
-	bicb.bicarbonate_value AS bicarbonate_baseline_val,
-	bicb.bicarbonate_date AS bicarbonate_baseline_date,
-	bicb.bicarbonate_range_high AS bicarbonate_baseline_range_high,
-	bicb.bicarbonate_range_low AS bicarbonate_baseline_range_low,
-
-	bicp.bicarbonate_num AS bicarbonate_prior,
-	bicp.bicarbonate_value AS bicarbonate_prior_val,
-	bicp.bicarbonate_date AS bicarbonate_prior_date,
-	bicp.bicarbonate_range_high AS bicarbonate_prior_range_high,
-	bicp.bicarbonate_range_low AS bicarbonate_prior_range_low,
-
-	bunb.bun_num AS bun_baseline,
-	bunb.bun_value AS bun_baseline_val,
-	bunb.bun_date AS bun_baseline_date,
-	bunb.bun_range_high AS bun_baseline_range_high,
-	bunb.bun_range_low AS bun_baseline_range_low,
-
-	bunp.bun_num AS bun_prior,
-	bunp.bun_value AS bun_prior_val,
-	bunp.bun_date AS bun_prior_date,
-	bunp.bun_range_high AS bun_prior_range_high,
-	bunp.bun_range_low AS bun_prior_range_low,
-
-	scrb.scr_num AS scr_baseline,
-	scrb.scr_value AS scr_baseline_val,
-	scrb.scr_date AS scr_baseline_date,
-	scrb.scr_range_high AS scr_baseline_range_high,
-	scrb.scr_range_low AS scr_baseline_range_low,
-
-	scrp.scr_num AS scr_prior,
-	scrp.scr_value AS scr_prior_val,
-	scrp.scr_date AS scr_prior_date,
-	scrp.scr_range_high AS scr_prior_range_high,
-	scrp.scr_range_low AS scr_prior_range_low,
-
-	mgb.magnesium_num AS magnesium_baseline,
-	mgb.magnesium_value AS magnesium_baseline_val,
-	mgb.magnesium_date AS magnesium_baseline_date,
-	mgb.magnesium_range_high AS magnesium_baseline_range_high,
-	mgb.magnesium_range_low AS magnesium_baseline_range_low,
-
-	mgp.magnesium_num AS magnesium_prior,
-	mgp.magnesium_value AS magnesium_prior_val,
-	mgp.magnesium_date AS magnesium_prior_date,
-	mgp.magnesium_range_high AS magnesium_prior_range_high,
-	mgp.magnesium_range_low AS magnesium_prior_range_low,
-
-	cb.calcium_num AS calcium_baseline,
-	cb.calcium_value AS calcium_baseline_val,
-	cb.calcium_date AS calcium_baseline_date,
-	cb.calcium_range_high AS calcium_baseline_range_high,
-	cb.calcium_range_low AS calcium_baseline_range_low,
-
-	cp.calcium_num AS calcium_prior,
-	cp.calcium_value AS calcium_prior_val,
-	cp.calcium_date AS calcium_prior_date,
-	cp.calcium_range_high AS calcium_prior_range_high,
-	cp.calcium_range_low AS calcium_prior_range_low,
-
-	phb.phosphate_num AS phosphate_baseline,
-	phb.phosphate_value AS phosphate_baseline_val,
-	phb.phosphate_date AS phosphate_baseline_date,
-	phb.phosphate_range_high AS phosphate_baseline_range_high,
-	phb.phosphate_range_low AS phosphate_baseline_range_low,
-
-	php.phosphate_num AS phosphate_prior,
-	php.phosphate_value AS phosphate_prior_val,
-	php.phosphate_date AS phosphate_prior_date,
-	php.phosphate_range_high AS phosphate_prior_range_high,
-	php.phosphate_range_low AS phosphate_prior_range_low,
-
-	asb.ast_num AS ast_baseline,
-	asb.ast_value AS ast_baseline_val,
-	asb.ast_date AS ast_baseline_date,
-	asb.ast_range_high AS ast_baseline_range_high,
-	asb.ast_range_low AS ast_baseline_range_low,
-
-	asp.ast_num AS ast_prior,
-	asp.ast_value AS ast_prior_val,
-	asp.ast_date AS ast_prior_date,
-	asp.ast_range_high AS ast_prior_range_high,
-	asp.ast_range_low AS ast_prior_range_low,
-
-	alb.alt_num AS alt_baseline,
-	alb.alt_value AS alt_baseline_val,
-	alb.alt_date AS alt_baseline_date,
-	alb.alt_range_high AS alt_baseline_range_high,
-	alb.alt_range_low AS alt_baseline_range_low,
-
-	alp.alt_num AS alt_prior,
-	alp.alt_value AS alt_prior_val,
-	alp.alt_date AS alt_prior_date,
-	alp.alt_range_high AS alt_prior_range_high,
-	alp.alt_range_low AS alt_prior_range_low,
-
-	apb.alp_num AS alp_baseline,
-	apb.alp_value AS alp_baseline_val,
-	apb.alp_date AS alp_baseline_date,
-	apb.alp_range_high AS alp_baseline_range_high,
-	apb.alp_range_low AS alp_baseline_range_low,
-
-	app.alp_num AS alp_prior,
-	app.alp_value AS alp_prior_val,
-	app.alp_date AS alp_prior_date,
-	app.alp_range_high AS alp_prior_range_high,
-	app.alp_range_low AS alp_prior_range_low,
-
-	tbb.tbili_num AS tbili_baseline,
-	tbb.tbili_value AS tbili_baseline_val,
-	tbb.tbili_date AS tbili_baseline_date,
-	tbb.tbili_range_high AS tbili_baseline_range_high,
-	tbb.tbili_range_low AS tbili_baseline_range_low,
-
-	tbp.tbili_num AS tbili_prior,
-	tbp.tbili_value AS tbili_prior_val,
-	tbp.tbili_date AS tbili_prior_date,
-	tbp.tbili_range_high AS tbili_prior_range_high,
-	tbp.tbili_range_low AS tbili_prior_range_low,
-
-	tpb.tprotein_num AS tprotein_baseline,
-	tpb.tprotein_value AS tprotein_baseline_val,
-	tpb.tprotein_date AS tprotein_baseline_date,
-	tpb.tprotein_range_high AS tprotein_baseline_range_high,
-	tpb.tprotein_range_low AS tprotein_baseline_range_low,
-
-	tpp.tprotein_num AS tprotein_prior,
-	tpp.tprotein_value AS tprotein_prior_val,
-	tpp.tprotein_date AS tprotein_prior_date,
-	tpp.tprotein_range_high AS tprotein_prior_range_high,
-	tpp.tprotein_range_low AS tprotein_prior_range_low,
-
-	abb.albumin_num AS albumin_baseline,
-	abb.albumin_value AS albumin_baseline_val,
-	abb.albumin_date AS albumin_baseline_date,
-	abb.albumin_range_high AS albumin_baseline_range_high,
-	abb.albumin_range_low AS albumin_baseline_range_low,
-
-	abp.albumin_num AS albumin_prior,
-	abp.albumin_value AS albumin_prior_val,
-	abp.albumin_date AS albumin_prior_date,
-	abp.albumin_range_high AS albumin_prior_range_high,
-	abp.albumin_range_low AS albumin_prior_range_low,
-
-	tsb.tsh_num AS tsh_baseline,
-	tsb.tsh_value AS tsh_baseline_val,
-	tsb.tsh_date AS tsh_baseline_date,
-	tsb.tsh_range_high AS tsh_baseline_range_high,
-	tsb.tsh_range_low AS tsh_baseline_range_low,
-
-	tsp.tsh_num AS tsh_prior,
-	tsp.tsh_value AS tsh_prior_val,
-	tsp.tsh_date AS tsh_prior_date,
-	tsp.tsh_range_high AS tsh_prior_range_high,
-	tsp.tsh_range_low AS tsh_prior_range_low,
-
-	vb.vitD_num AS vitD_baseline,
-	vb.vitD_value AS vitD_baseline_val,
-	vb.vitD_date AS vitD_baseline_date,
-	vb.vitD_range_high AS vitD_baseline_range_high,
-	vb.vitD_range_low AS vitD_baseline_range_low,
-
-	vp.vitD_num AS vitD_prior,
-	vp.vitD_value AS vitD_prior_val,
-	vp.vitD_date AS vitD_prior_date,
-	vp.vitD_range_high AS vitD_prior_range_high,
-	vp.vitD_range_low AS vitD_prior_range_low,
-
-	tb.triglycerides_num AS triglycerides_baseline,
-	tb.triglycerides_value AS triglycerides_baseline_val,
-	tb.triglycerides_date AS triglycerides_baseline_date,
-	tb.triglycerides_range_high AS triglycerides_baseline_range_high,
-	tb.triglycerides_range_low AS triglycerides_baseline_range_low,
-
-	tp.triglycerides_num AS triglycerides_prior,
-	tp.triglycerides_value AS triglycerides_prior_val,
-	tp.triglycerides_date AS triglycerides_prior_date,
-	tp.triglycerides_range_high AS triglycerides_prior_range_high,
-	tp.triglycerides_range_low AS triglycerides_prior_range_low,
-
-	lb.LDL_num AS LDL_baseline,
-	lb.LDL_value AS LDL_baseline_val,
-	lb.LDL_date AS LDL_baseline_date,
-	lb.LDL_range_high AS LDL_baseline_range_high,
-	lb.LDL_range_low AS LDL_baseline_range_low,
-
-	lp.LDL_num AS LDL_prior,
-	lp.LDL_value AS LDL_prior_val,
-	lp.LDL_date AS LDL_prior_date,
-	lp.LDL_range_high AS LDL_prior_range_high,
-	lp.LDL_range_low AS LDL_prior_range_low,
-
-	a1cb.hgba1c_num AS hgba1c_baseline,
-	a1cb.hgba1c_value AS hgba1c_baseline_val,
-	a1cb.hgba1c_date AS hgba1c_baseline_date,
-	a1cb.hgba1c_range_high AS hgba1c_baseline_range_high,
-	a1cb.hgba1c_range_low AS hgba1c_baseline_range_low,
-
-	a1cp.hgba1c_num AS hgba1c_prior,
-	a1cp.hgba1c_value AS hgba1c_prior_val,
-	a1cp.hgba1c_date AS hgba1c_prior_date,
-	a1cp.hgba1c_range_high AS hgba1c_prior_range_high,
-	a1cp.hgba1c_range_low AS hgba1c_prior_range_low,
- 
+	hap.lab_num AS hgball_prior,
+	hap.lab_value AS hgball_prior_val,
+	hap.lab_date AS hgball_prior_date,
+	
+	hb.lab_num AS hgb_baseline,
+	hb.lab_value AS hgb_baseline_val,
+	hb.lab_date AS hgb_baseline_date,
+	
+	hp.lab_num AS hgb_prior,
+	hp.lab_value AS hgb_prior_val,
+	hp.lab_date AS hgb_prior_date,
+	
+	mb.lab_num AS mcv_baseline,
+	mb.lab_value AS mcv_baseline_val,
+	mb.lab_date AS mcv_baseline_date,
+	
+	mp.lab_num AS mcv_prior,
+	mp.lab_value AS mcv_prior_val,
+	mp.lab_date AS mcv_prior_date,
+	
+	wb.lab_num AS wbc_baseline,
+	wb.lab_value AS wbc_baseline_val,
+	wb.lab_date AS wbc_baseline_date,
+	
+	wp.lab_num AS wbc_prior,
+	wp.lab_value AS wbc_prior_val,
+	wp.lab_date AS wbc_prior_date,
+	
+	pb.lab_num AS plt_baseline,
+	pb.lab_value AS plt_baseline_val,
+	pb.lab_date AS plt_baseline_date,
+	
+	pp.lab_num AS plt_prior,
+	pp.lab_value AS plt_prior_val,
+	pp.lab_date AS plt_prior_date,
+	
+	sb.lab_num AS sodium_baseline,
+	sb.lab_value AS sodium_baseline_val,
+	sb.lab_date AS sodium_baseline_date,
+	
+	sp.lab_num AS sodium_prior,
+	sp.lab_value AS sodium_prior_val,
+	sp.lab_date AS sodium_prior_date,
+	
+	kb.lab_num AS potassium_baseline,
+	kb.lab_value AS potassium_baseline_val,
+	kb.lab_date AS potassium_baseline_date,
+	
+	kp.lab_num AS potassium_prior,
+	kp.lab_value AS potassium_prior_val,
+	kp.lab_date AS potassium_prior_date,
+	
+	clb.lab_num AS chloride_baseline,
+	clb.lab_value AS chloride_baseline_val,
+	clb.lab_date AS chloride_baseline_date,
+	
+	clp.lab_num AS chloride_prior,
+	clp.lab_value AS chloride_prior_val,
+	clp.lab_date AS chloride_prior_date,
+	
+	bicb.lab_num AS bicarbonate_baseline,
+	bicb.lab_value AS bicarbonate_baseline_val,
+	bicb.lab_date AS bicarbonate_baseline_date,
+	
+	bicp.lab_num AS bicarbonate_prior,
+	bicp.lab_value AS bicarbonate_prior_val,
+	bicp.lab_date AS bicarbonate_prior_date,
+	
+	bunb.lab_num AS bun_baseline,
+	bunb.lab_value AS bun_baseline_val,
+	bunb.lab_date AS bun_baseline_date,
+	
+	bunp.lab_num AS bun_prior,
+	bunp.lab_value AS bun_prior_val,
+	bunp.lab_date AS bun_prior_date,
+	
+	scrb.lab_num AS scr_baseline,
+	scrb.lab_value AS scr_baseline_val,
+	scrb.lab_date AS scr_baseline_date,
+	
+	scrp.lab_num AS scr_prior,
+	scrp.lab_value AS scr_prior_val,
+	scrp.lab_date AS scr_prior_date,
+	
+	mgb.lab_num AS magnesium_baseline,
+	mgb.lab_value AS magnesium_baseline_val,
+	mgb.lab_date AS magnesium_baseline_date,
+	
+	mgp.lab_num AS magnesium_prior,
+	mgp.lab_value AS magnesium_prior_val,
+	mgp.lab_date AS magnesium_prior_date,
+	
+	cb.lab_num AS calcium_baseline,
+	cb.lab_value AS calcium_baseline_val,
+	cb.lab_date AS calcium_baseline_date,
+	
+	cp.lab_num AS calcium_prior,
+	cp.lab_value AS calcium_prior_val,
+	cp.lab_date AS calcium_prior_date,
+	
+	phb.lab_num AS phosphate_baseline,
+	phb.lab_value AS phosphate_baseline_val,
+	phb.lab_date AS phosphate_baseline_date,
+	
+	php.lab_num AS phosphate_prior,
+	php.lab_value AS phosphate_prior_val,
+	php.lab_date AS phosphate_prior_date,
+	
+	asb.lab_num AS ast_baseline,
+	asb.lab_value AS ast_baseline_val,
+	asb.lab_date AS ast_baseline_date,
+	
+	asp.lab_num AS ast_prior,
+	asp.lab_value AS ast_prior_val,
+	asp.lab_date AS ast_prior_date,
+	
+	alb.lab_num AS alt_baseline,
+	alb.lab_value AS alt_baseline_val,
+	alb.lab_date AS alt_baseline_date,
+	
+	alp.lab_num AS alt_prior,
+	alp.lab_value AS alt_prior_val,
+	alp.lab_date AS alt_prior_date,
+	
+	apb.lab_num AS alp_baseline,
+	apb.lab_value AS alp_baseline_val,
+	apb.lab_date AS alp_baseline_date,
+	
+	app.lab_num AS alp_prior,
+	app.lab_value AS alp_prior_val,
+	app.lab_date AS alp_prior_date,
+	
+	tbb.lab_num AS tbili_baseline,
+	tbb.lab_value AS tbili_baseline_val,
+	tbb.lab_date AS tbili_baseline_date,
+	
+	tbp.lab_num AS tbili_prior,
+	tbp.lab_value AS tbili_prior_val,
+	tbp.lab_date AS tbili_prior_date,
+	
+	tpb.lab_num AS tprotein_baseline,
+	tpb.lab_value AS tprotein_baseline_val,
+	tpb.lab_date AS tprotein_baseline_date,
+	
+	tpp.lab_num AS tprotein_prior,
+	tpp.lab_value AS tprotein_prior_val,
+	tpp.lab_date AS tprotein_prior_date,
+	
+	abb.lab_num AS albumin_baseline,
+	abb.lab_value AS albumin_baseline_val,
+	abb.lab_date AS albumin_baseline_date,
+	
+	abp.lab_num AS albumin_prior,
+	abp.lab_value AS albumin_prior_val,
+	abp.lab_date AS albumin_prior_date,
+	
+	tsb.lab_num AS tsh_baseline,
+	tsb.lab_value AS tsh_baseline_val,
+	tsb.lab_date AS tsh_baseline_date,
+	
+	tsp.lab_num AS tsh_prior,
+	tsp.lab_value AS tsh_prior_val,
+	tsp.lab_date AS tsh_prior_date,
+	
+	vb.lab_num AS vitD_baseline,
+	vb.lab_value AS vitD_baseline_val,
+	vb.lab_date AS vitD_baseline_date,
+	
+	vp.lab_num AS vitD_prior,
+	vp.lab_value AS vitD_prior_val,
+	vp.lab_date AS vitD_prior_date,
+	
+	tb.lab_num AS triglycerides_baseline,
+	tb.lab_value AS triglycerides_baseline_val,
+	tb.lab_date AS triglycerides_baseline_date,
+	
+	tp.lab_num AS triglycerides_prior,
+	tp.lab_value AS triglycerides_prior_val,
+	tp.lab_date AS triglycerides_prior_date,
+	
+	lb.lab_num AS LDL_baseline,
+	lb.lab_value AS LDL_baseline_val,
+	lb.lab_date AS LDL_baseline_date,
+	
+	lp.lab_num AS LDL_prior,
+	lp.lab_value AS LDL_prior_val,
+	lp.lab_date AS LDL_prior_date,
+	
+	a1cb.lab_num AS hgba1c_baseline,
+	a1cb.lab_value AS hgba1c_baseline_val,
+	a1cb.lab_date AS hgba1c_baseline_date,
+	
+	a1cp.lab_num AS hgba1c_prior,
+	a1cp.lab_value AS hgba1c_prior_val,
+	a1cp.lab_date AS hgba1c_prior_date,
+	
 	hpy.hpylori_earliest_date, -- first positive value if there is a positive value
 	hpy.hpylori_earliest_value,
 	hpy.hpylori_earliest_range_high,
@@ -2440,16 +1838,11 @@ LEFT JOIN #Alcohol_ICD alcohol ON e.pt_id = alcohol.pt_id
 
 LEFT JOIN #Famhx_cancer fhx ON e.pt_id = fhx.pt_id 
 
-LEFT JOIN #Social_Language sl ON e.pt_id = sl.pt_id 
-LEFT JOIN #Social_Race sr ON e.pt_id = sr.pt_id 
-LEFT JOIN #Social_Ethnicity se ON e.pt_id = se.pt_id 
+LEFT JOIN (SELECT * FROM #Social_Language WHERE rn = 1) sl ON e.pt_id = sl.pt_id 
+LEFT JOIN (SELECT * FROM #Social_Race WHERE rn = 1) sr ON e.pt_id = sr.pt_id 
+LEFT JOIN (SELECT * FROM #Social_Ethnicity WHERE rn = 1) se ON e.pt_id = se.pt_id 
+LEFT JOIN (SELECT * FROM #Social_Smoking_Narrative WHERE rn = 1) ssn ON e.pt_id = ssn.pt_id 
 LEFT JOIN #Social_Alcohol sa ON e.pt_id = sa.pt_id 
 LEFT JOIN #Social_Smoking ss ON e.pt_id = ss.pt_id 
-LEFT JOIN #Social_Smoking_Narrative ssn ON e.pt_id = ssn.pt_id 
 
 LEFT JOIN #Meds meds ON e.pt_id = meds.pt_id
-
-WHERE sl.rn = 1 
-	AND sr.rn = 1 
-	AND se.rn = 1 
-	AND ssn.rn = 1
