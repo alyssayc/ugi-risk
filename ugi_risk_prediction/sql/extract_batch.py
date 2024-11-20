@@ -22,7 +22,8 @@ config = {
 }
 
 # Prompt user for their password (only once)
-password = getpass.getpass(prompt='Enter your password: ')
+# password = getpass.getpass(prompt='Enter your password: ')
+# password = "your password"
 
 # Connect to MSDW or Caboodle once
 conn = pymssql.connect(
@@ -73,8 +74,8 @@ for sql_filename in os.listdir(sql_path):
             df = pd.DataFrame(data)
 
             # Save the result to a CSV file
-            df.to_csv(output_path / output_file_name, compression='gzip', index=False)
-            print(f'Results for {sql_filename} saved as {output_path / output_file_name}')
+            df.to_csv(output_path / output_filename, compression='gzip', index=False)
+            print(f'Results for {sql_filename} saved as {output_path / output_filename}')
 
             # Calculate and print execution time 
             end_time = datetime.now()
@@ -87,8 +88,11 @@ for sql_filename in os.listdir(sql_path):
         except Exception as e:
             print(f"Error executing {sql_filename}: {e}")
 
-finally:
-    # Close the connection after all queries are processed
-    conn.close()
-    print('Connection closed.')
+    # Catch errors related to the SQL file or database connection
+    except Exception as e:
+        print(f"Error with file {sql_filename}: {e}")
+    
+# Close the connection after all queries are processed
+conn.close()
+print('Connection closed.')
 
