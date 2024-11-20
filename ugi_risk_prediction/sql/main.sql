@@ -55,7 +55,9 @@ SELECT
 	measurement_date as lab_date,
 	value_as_number as lab_num,
 	value_source_value as lab_value,
-	unit_concept_code as lab_unit
+	unit_concept_code as lab_unit,
+	range_high,
+    range_low
 INTO #Labs
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (
@@ -92,85 +94,85 @@ AND person_id IN (SELECT pt_id FROM #Demographics)
 
 DROP TABLE IF EXISTS #Hpylori_clean;
 SELECT 
-    person_id as pt_id,
+    pt_id,
     measurement_concept_id as hpylori_id,
-    measurement_source_value as hpylori_textid,
-    measurement_date as hpylori_date,
-    value_as_number as hpylori_num,
-    value_source_value as hpylori_value,
-    unit_concept_code as hpylori_unit,
+    lab_textid as hpylori_textid,
+    lab_date as hpylori_date,
+    lab_num as hpylori_num,
+    lab_value as hpylori_value,
+    lab_unit as hpylori_unit,
     range_high as hpylori_range_high,
     range_low as hpylori_range_low,
     CASE 
-        WHEN value_source_value = '<9.0' AND range_high = '8.9' THEN 'negative'
-        WHEN value_source_value = 'Positive' THEN 'positive'
-        WHEN value_source_value = 'Negative' THEN 'negative'
-        WHEN value_source_value = 'TNP' THEN 'error' -- test not performed
-        WHEN value_as_number IS NOT NULL AND value_as_number > range_high THEN 'positive'
-        WHEN value_as_number IS NOT NULL AND value_as_number <= range_high THEN 'negative'
-        WHEN value_as_number IS NOT NULL AND range_high IS NULL THEN 'no range' -- 'H.PYLORI IGG INDEX', 'H. PYLORI IGA', 'H. PYLORI, IGM AB'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%duplicate%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%equivocal%' THEN 'negative'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not sufficient%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not performed%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%see%' THEN 'error' -- ie. see below or see note
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no specimen%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%incorrect%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%inappropriate%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%insufficient%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%improper%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%wrong%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%error%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%received%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%cancel%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%inconclusive%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%uncertain%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%comment%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not offered%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no longer%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%lost%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no suitable%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no longer available%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%lab accident%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%leaked%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%note%' THEN 'error'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%discrepancy%' THEN 'error'
-        ELSE value_source_value 
+        WHEN lab_value = '<9.0' AND range_high = '8.9' THEN 'negative'
+        WHEN lab_value = 'Positive' THEN 'positive'
+        WHEN lab_value = 'Negative' THEN 'negative'
+        WHEN lab_value = 'TNP' THEN 'error' -- test not performed
+        WHEN lab_num IS NOT NULL AND lab_num > range_high THEN 'positive'
+        WHEN lab_num IS NOT NULL AND lab_num <= range_high THEN 'negative'
+        WHEN lab_num IS NOT NULL AND range_high IS NULL THEN 'no range' -- 'H.PYLORI IGG INDEX', 'H. PYLORI IGA', 'H. PYLORI, IGM AB'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%duplicate%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%equivocal%' THEN 'negative'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%not sufficient%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%not performed%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%see%' THEN 'error' -- ie. see below or see note
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%no specimen%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%incorrect%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%inappropriate%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%insufficient%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%improper%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%wrong%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%error%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%received%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%cancel%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%inconclusive%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%uncertain%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%comment%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%not offered%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%no longer%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%lost%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%no suitable%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%no longer available%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%lab accident%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%leaked%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%note%' THEN 'error'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%discrepancy%' THEN 'error'
+        ELSE lab_value 
     END AS hpylori_result,
     CASE 
-        WHEN value_source_value = '<9.0' AND range_high = '8.9' THEN 0
-        WHEN value_source_value = 'Positive' THEN 1
-        WHEN value_source_value = 'Negative' THEN 0
-        WHEN value_source_value = 'TNP' THEN -2 -- test not performed
-        WHEN value_as_number IS NOT NULL AND value_as_number > range_high THEN 1
-        WHEN value_as_number IS NOT NULL AND value_as_number <= range_high THEN 0
-        WHEN value_as_number IS NOT NULL AND range_high IS NULL THEN -1 -- 'H.PYLORI IGG INDEX', 'H. PYLORI IGA', 'H. PYLORI, IGM AB'
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%duplicate%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%equivocal%' THEN 0
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not sufficient%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not performed%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%see%' THEN -2 -- ie. see below or see note
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no specimen%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%incorrect%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%inappropriate%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%insufficient%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%improper%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%wrong%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%error%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%received%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%cancel%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%inconclusive%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%uncertain%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%comment%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%not offered%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no longer%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%lost%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no suitable%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%no longer available%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%lab accident%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%leaked%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%note%' THEN -2
-        WHEN value_as_number IS NULL AND LOWER(value_source_value) LIKE '%discrepancy%' THEN -2
+        WHEN lab_value = '<9.0' AND range_high = '8.9' THEN 0
+        WHEN lab_value = 'Positive' THEN 1
+        WHEN lab_value = 'Negative' THEN 0
+        WHEN lab_value = 'TNP' THEN -2 -- test not performed
+        WHEN lab_num IS NOT NULL AND lab_num > range_high THEN 1
+        WHEN lab_num IS NOT NULL AND lab_num <= range_high THEN 0
+        WHEN lab_num IS NOT NULL AND range_high IS NULL THEN -1 -- 'H.PYLORI IGG INDEX', 'H. PYLORI IGA', 'H. PYLORI, IGM AB'
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%duplicate%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%equivocal%' THEN 0
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%not sufficient%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%not performed%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%see%' THEN -2 -- ie. see below or see note
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%no specimen%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%incorrect%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%inappropriate%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%insufficient%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%improper%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%wrong%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%error%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%received%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%cancel%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%inconclusive%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%uncertain%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%comment%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%not offered%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%no longer%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%lost%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%no suitable%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%no longer available%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%lab accident%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%leaked%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%note%' THEN -2
+        WHEN lab_num IS NULL AND LOWER(lab_value) LIKE '%discrepancy%' THEN -2
         ELSE -3 -- if there are a lot of -3s then might be worth the time to go back and clean up the extra values a bit more
     END AS hpylori_result_num,
     CASE 
