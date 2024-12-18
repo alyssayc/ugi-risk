@@ -1758,7 +1758,7 @@ SELECT
 
 	barretts.barretts_start_date,
 	barretts.barretts,
-	
+
 	cad.cad_start_date,
 	cad.cad,
 	
@@ -1776,9 +1776,18 @@ SELECT
 	fhx.famhx_barretts,
 
 	-- Meds 
-	meds.ASA_start_date,
-	meds.NSAID_start_date,
-	meds.PPI_start_date
+	CASE 
+        WHEN meds.ASA_start_date IS NULL OR meds.ASA_start_date > e.visit_start_date THEN 0
+        WHEN meds.ASA_start_date <= e.visit_start_date THEN 1 
+    END AS ASA_use, 
+	CASE 
+        WHEN meds.NSAID_start_date IS NULL OR meds.NSAID_start_date > e.visit_start_date THEN 0
+        WHEN meds.NSAID_start_date <= e.visit_start_date THEN 1 
+    END AS NSAID_use, 
+	CASE 
+        WHEN meds.PPI_start_date IS NULL OR meds.PPI_start_date > e.visit_start_date THEN 0
+        WHEN meds.PPI_start_date <= e.visit_start_date THEN 1 
+    END AS PPI_use
 
 FROM #Encounters e
 JOIN #Demographics d ON e.pt_id = d.pt_id
