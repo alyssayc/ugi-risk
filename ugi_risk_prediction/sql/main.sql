@@ -1177,7 +1177,21 @@ SELECT
 INTO #Hpylori_ICD
 FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
-WHERE id.snomed = '13200003' OR id.icd10 LIKE 'K25.%' OR id.icd10 LIKE 'K27.%'
+WHERE id.snomed = '307759003' OR id.icd10 LIKE 'B96.81' 
+AND person_id IN (SELECT pt_id FROM #Demographics)
+AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+GROUP BY person_id
+
+-- Barrett's esophagus
+DROP TABLE IF EXISTS #Barretts;
+SELECT 
+     person_id AS pt_id,
+     MIN(condition_start_date) AS barretts_start_date,
+     1 AS barretts
+INTO #Barretts
+FROM omop.cdm_phi.condition_occurrence AS co
+INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
+WHERE id.snomed = '302914006' OR id.icd10 LIKE 'K22.7%' 
 AND person_id IN (SELECT pt_id FROM #Demographics)
 AND condition_start_date <= '{end_date}' -- change me to the last encounter date
 GROUP BY person_id
@@ -1742,6 +1756,9 @@ SELECT
 	hpylori.hpylori_start_date,
 	hpylori.hpylori,
 
+	barretts.barretts_start_date,
+	barretts.barretts,
+	
 	cad.cad_start_date,
 	cad.cad,
 	
@@ -1851,6 +1868,7 @@ LEFT JOIN #Achalasia ach ON e.pt_id = ach.pt_id
 LEFT JOIN #PUD pud ON e.pt_id = pud.pt_id 
 LEFT JOIN #GERD gerd ON e.pt_id = gerd.pt_id 
 LEFT JOIN #Hpylori_ICD hpylori ON e.pt_id = hpylori.pt_id 
+LEFT JOIN #Barretts barretts ON e.pt_id = barretts.pt_id 
 LEFT JOIN #CAD cad ON e.pt_id = cad.pt_id 
 LEFT JOIN #Tobacco_ICD tobacco ON e.pt_id = tobacco.pt_id 
 LEFT JOIN #Alcohol_ICD alcohol ON e.pt_id = alcohol.pt_id 
