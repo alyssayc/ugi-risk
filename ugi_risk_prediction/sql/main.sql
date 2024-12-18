@@ -5,13 +5,20 @@
 DROP TABLE IF EXISTS #Encounters;
 SELECT
 	e.visit_occurrence_id as visit_id,
+	e.xtn_external_visit_id as visit_id_epic,
 	e.person_id as pt_id,
+	e.visit_start_date,
+	e.visit_end_date,
 	e.xtn_epic_encounter_number,
 	e.etl_epic_encounter_key,
 	e.xtn_visit_type_source_concept_name as encounter_type,
+	e.xtn_appt_status_source_concept_name as appt_status,
+	e.visit_concept_name,
+	e.visit_concept_id, 
+	e.visit_source_concept_name,
+	e.xtn_level_of_service_source_concept_name as level_of_service_name,
+	e.xtn_level_of_service_source_concept_id as level_of_service_id,
 	c.xtn_parent_location_name as care_site,
-	e.visit_start_date,
-	e.visit_end_date,
 	DATEADD(month, -6, e.visit_start_date) AS visit_start_date_minus_6mo,
 	DATEADD(month, -9, e.visit_start_date) AS visit_start_date_minus_9mo,
 	DATEADD(month, -12, e.visit_start_date) AS visit_start_date_minus_12mo,
@@ -19,8 +26,10 @@ SELECT
 INTO #Encounters 
 FROM omop.cdm_phi.visit_occurrence e
 LEFT JOIN omop.cdm_phi.care_site c ON e.care_site_id = c.care_site_id 
-WHERE xtn_visit_type_source_concept_name IN ('Telehealth Visit', 'Outpatient Visit', 'Hospital Outpatient Visit', 'Inpatient Hospitalization', 'Inpatient Hospitalization from ED Visit', 'ED Visit')
+WHERE xtn_visit_type_source_concept_name IN ('Outpatient Visit', 'Hospital Outpatient Visit', 'Inpatient Hospitalization', 'Inpatient Hospitalization from ED Visit', 'ED Visit')
 AND visit_start_date BETWEEN '{start_date}' AND '{end_date}' -- change me 
+AND visit_occurrence_id IS NOT NULL 
+AND xtn_visit_status_source_concept_name = 'Complete' -- ensures visit is completed 
 
 /*
  * Demographics. Nontemporal patient data 
@@ -62,6 +71,8 @@ INTO #Labs
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (
 	3038553 -- BMI
+	, 39929852 -- Height
+	, 3025315 -- Weight
 	, 1616317, 3000963, 3004119, 3006239, 3002173, 46235392, 3027484 -- Hgb all 
 	, 3000963 -- Hgb 
 	, 3023599, 3024731 -- Mcv
@@ -1221,24 +1232,28 @@ DROP TABLE IF EXISTS #Famhx_cancer;
 SELECT 
     person_id AS pt_id,
     MAX(CASE 
-	    WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
+	    WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%neoplasm%') THEN 1 
     	ELSE 0 
     END) AS famhx_cancer,
     MAX(CASE 
     	WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%gastric%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%stomach%') 
-    	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
+    	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%neoplasm%') THEN 1 
     	ELSE 0
     END) AS famhx_gastricca,
     MAX(CASE 
     	WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%colo%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%rectal%') 
-    	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
+    	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%neoplasm%') THEN 1 
     	ELSE 0
     END) AS famhx_colonca,
     MAX(CASE 
-    	WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%esophageal%') 
-    	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%') THEN 1 
+    	WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%esophag%') 
+    	AND (LOWER(xtn_value_as_source_concept_name) LIKE '%cancer%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%carcinoma%' OR LOWER(xtn_value_as_source_concept_name) LIKE '%neoplasm%') THEN 1 
     	ELSE 0
-    END) AS famhx_esophagealca
+    END) AS famhx_esophagealca,
+    MAX(CASE 
+    	WHEN (LOWER(xtn_value_as_source_concept_name) LIKE '%barrett%') THEN 1 
+    	ELSE 0
+    END) AS famhx_barretts
 INTO #Famhx_cancer
 FROM omop.cdm_phi.observation 
 WHERE (observation_concept_name = 'Family history with explicit context' 
@@ -1333,8 +1348,8 @@ SELECT
         WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = '5 or 6' THEN '3: 5 or 6'
         WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = '3 or 4' THEN '2: 3 or 4'
         WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = '1 or 2' THEN '1: 1 or 2'
-        WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = 'Not asked' THEN '0: Not asked'
-        WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = 'Patient refused' THEN '0: Patient refused'
+        WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = 'Not asked' THEN '-1: Not asked'
+        WHEN observation_concept_name = 'How many standard drinks containing alcohol do you have on a typical day' AND value_as_concept_name = 'Patient refused' THEN '-1: Patient refused'
         ELSE NULL
     END) AS social_alcohol_drinks_day
 INTO #Social_Alcohol
@@ -1427,6 +1442,7 @@ SELECT
 	d.pt_id,
 	d.mrn,
 	e.visit_id,
+	e.visit_id_epic,
 
 	-- Demographics
 	d.sex,
@@ -1740,6 +1756,7 @@ SELECT
 	fhx.famhx_esophagealca,
 	fhx.famhx_gastricca,
 	fhx.famhx_colonca,
+	fhx.famhx_barretts,
 
 	-- Meds 
 	meds.ASA_start_date,
