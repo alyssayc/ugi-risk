@@ -71,7 +71,7 @@ INTO #Labs
 FROM omop.cdm_phi.measurement
 WHERE measurement_concept_id IN (
 	3038553 -- BMI
-	, 39929852 -- Height
+	, 3036277 -- Height
 	, 3025315 -- Weight
 	, 1616317, 3000963, 3004119, 3006239, 3002173, 46235392, 3027484 -- Hgb all 
 	, 3000963 -- Hgb 
@@ -284,6 +284,20 @@ GROUP BY e.pt_id
 /* 
  * Generate temporary tables to get baseline and prior data by creating Common Table Expressions.
  */
+
+-- Get baseline height defined as average height over last 5 years. 
+DROP TABLE IF EXISTS #Height_baseline; 
+SELECT e.visit_id, 
+	e.pt_id,
+	e.visit_start_date,
+	AVG(l.lab_num) as height_baseline
+INTO #Height_baseline
+FROM #Encounters e
+JOIN #Labs l 
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -60, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3036277
+GROUP BY e.visit_id, e.pt_id, e.visit_start_date 
 
 -- Get all BMIs within 6 months prior to the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #BMI_baseline;
@@ -1507,6 +1521,8 @@ SELECT
 	e.visit_start_date_minus_18mo,
 
 	-- Measurements, baseline and prior 
+	h.height_baseline,
+
 	b.lab_num AS BMI_baseline,
 	b.lab_value AS BMI_baseline_val,
 	b.lab_date AS BMI_baseline_date,
@@ -1802,6 +1818,7 @@ SELECT
 
 FROM #Encounters e
 JOIN #Demographics d ON e.pt_id = d.pt_id
+LEFT JOIN #Height_baseline h ON e.visit_id = h.visit_id 
 LEFT JOIN #BMI_baseline b ON e.visit_id = b.visit_id AND b.rn = 1
 LEFT JOIN #BMI_prior p ON e.visit_id = p.visit_id AND p.rn = 1 
 
