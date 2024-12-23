@@ -299,6 +299,22 @@ JOIN #Labs l
 	AND l.measurement_concept_id = 3036277
 GROUP BY e.visit_id, e.pt_id, e.visit_start_date 
 
+-- Get all weights within 6 months prior to the visit date and order by the value closest to the visit date 
+DROP TABLE IF EXISTS #Weight_baseline;
+SELECT e.visit_id,
+	e.pt_id,
+	e.visit_start_date,
+	l.lab_value,
+	l.lab_num,
+	l.lab_date,
+	ROW_NUMBER() OVER (PARTITION BY e.visit_id ORDER BY ABS(DATEDIFF(day, e.visit_start_date, l.lab_date))) AS rn
+INTO #Weight_baseline
+FROM #Encounters e
+JOIN #Labs l
+	ON e.pt_id = l.pt_id 
+	AND l.lab_date BETWEEN DATEADD(month, -6, e.visit_start_date) AND e.visit_start_date
+	AND l.measurement_concept_id = 3025315
+
 -- Get all BMIs within 6 months prior to the visit date and order by the value closest to the visit date 
 DROP TABLE IF EXISTS #BMI_baseline;
 SELECT e.visit_id,
@@ -1522,6 +1538,7 @@ SELECT
 
 	-- Measurements, baseline and prior 
 	h.height_baseline,
+	w.lab_num AS weight_baseline,
 
 	b.lab_num AS BMI_baseline,
 	b.lab_value AS BMI_baseline_val,
@@ -1819,6 +1836,7 @@ SELECT
 FROM #Encounters e
 JOIN #Demographics d ON e.pt_id = d.pt_id
 LEFT JOIN #Height_baseline h ON e.visit_id = h.visit_id 
+LEFT JOIN #Weight_baseline w ON e.visit_id = w.visit_id AND w.rn = 1
 LEFT JOIN #BMI_baseline b ON e.visit_id = b.visit_id AND b.rn = 1
 LEFT JOIN #BMI_prior p ON e.visit_id = p.visit_id AND p.rn = 1 
 
