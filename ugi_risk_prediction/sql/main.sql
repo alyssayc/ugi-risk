@@ -100,7 +100,6 @@ WHERE measurement_concept_id IN (
 	, 3004410 -- HgbA1c 
 	, 3007894, 3016100, 3027491, 3023871, 40771569, 3018195, 36304847, 3013139, 3010921, 3011630, 3016410 -- HPylori 
 )
-AND measurement_date BETWEEN DATEADD(month, -15, '{start_date}') AND '{end_date}' -- restrict to -15 months from encounter date; change me 
 AND person_id IN (SELECT pt_id FROM #Demographics)
 
 DROP TABLE IF EXISTS #Hpylori_clean;
@@ -1097,7 +1096,7 @@ WHERE id.snomed IN (
 	'363349007', '255139006', '372143007', '255084004', '255085003', '255086002', '255087006', '255088001', '255089009', '255090000', '255091001', '255092008', '255093003', '255094009', '255095005', '255096006', '255097002', '255098007', '255099004', '255100007', '255101006', '255102004', '255103009', '255104003', '255105002', '255106001', '255107005', '255108000', '255109008', '255110003', '255111004', '255112006', '255113001', '255114007', '255115008', '255116009', '255117000', '255118005', '255119002', '255120008', '255121007', '255122000', '255123005', '255124004', '255125003', '255126002', '255127006', '255128001', '255129009', '255130004', '255131000', '255132007', '255133002'
 ) OR id.icd10 LIKE 'C16.%'
 AND person_id IN (SELECT pt_id FROM #Demographics)
-AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+AND condition_start_date <= '{end_date}' 
 GROUP BY person_id
 
 -- Esophageal cancer
@@ -1113,7 +1112,7 @@ WHERE id.snomed IN (
 	 '363402007', '126817006', '276803003', '254837009', '254926005', '421257005', '254934004', '254922009', '276804009', '421261003', '254830006', '254929003'
 ) OR id.icd10 LIKE 'C15.%'
 AND person_id IN (SELECT pt_id FROM #Demographics)
-AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+AND condition_start_date <= '{end_date}' 
 GROUP BY person_id
 
 -- Head and neck cancer (based on ESGE screening for esophageal SCC)
@@ -1128,7 +1127,7 @@ INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed IN ('255055008', '18803008', '275397008', '275490009', '93761005', '254424004', '93802007', '93935003', '94138009', '93989001', '93933005', '93971002', '93787005', '93970001', '93831006', '93968005', '93752005', '94102002', '94103007', '93816002', '94080006', '94075002', '93859007', '93917007', '422758009', '93889000', '93787005', '94067008', '93949007', '94077005', '94076001', '363501002', '93922007', '93926005', '93932000', '363354003', '255056000', '255057009', '255058004', '255059007', '255060002', '255061003', '255062005', '255063000', '255064006', '255065007', '255066008', '255067004', '255068009', '255069001', '255070000', '255071001', '255074009', '363375006')
 	OR id.icd10 LIKE 'C76.0' OR id.icd10 LIKE 'C[0-1][0-4].%' OR id.icd10 LIKE 'C32.%'
 AND person_id IN (SELECT pt_id FROM #Demographics)
-AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+AND condition_start_date <= '{end_date}' 
 GROUP BY person_id
 
 -- Achalasia (based on ESGE screening for esophageal SCC)
@@ -1142,7 +1141,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed IN ('48531003', '86200005', '40845000', '40880005', '40860007', '40870003') OR id.icd10 LIKE 'K22.0'
 AND person_id IN (SELECT pt_id FROM #Demographics)
-AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+AND condition_start_date <= '{end_date}' 
 GROUP BY person_id
 
 -- Peptic ulcer
@@ -1156,7 +1155,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed IN ('13200003', '40845000', '40880005', '40860007', '40870003', '88169003') OR id.icd10 LIKE 'K25.%' OR id.icd10 LIKE 'K27.%'
 AND person_id IN (SELECT pt_id FROM #Demographics)
-AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+AND condition_start_date <= '{end_date}' 
 GROUP BY person_id
 
 -- GERD
@@ -1171,7 +1170,7 @@ INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed IN ('235595009', '11610002', '444609008', '431196009', '441638007', '373110000')
  OR id.icd10 LIKE 'K21.%'
 AND person_id IN (SELECT pt_id FROM #Demographics)
-AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+AND condition_start_date <= '{end_date}' 
 GROUP BY person_id
 
 -- H pylori 
@@ -1185,7 +1184,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed IN ('307759003', '708164002', '89538001', '1171358000', '445132000', '207379005', '80774000') OR id.icd10 LIKE 'B96.81' 
 AND person_id IN (SELECT pt_id FROM #Demographics)
-AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+AND condition_start_date <= '{end_date}' 
 GROUP BY person_id
 
 -- Barrett's esophagus
@@ -1199,7 +1198,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed IN ('302914006', '235597001', '1082751000119109', '1082771000119100', '1082761000119106', '196609006') OR id.icd10 LIKE 'K22.7%' 
 AND person_id IN (SELECT pt_id FROM #Demographics)
-AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+AND condition_start_date <= '{end_date}' 
 GROUP BY person_id
 
 -- Coronary artery disease
@@ -1213,7 +1212,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed IN ('53741008', '413839001', '413838009', '414024009', '275512007', '413844008', '194828000', '413841009', '413842002') OR id.icd10 LIKE 'I25.%'
 AND person_id IN (SELECT pt_id FROM #Demographics)
-AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+AND condition_start_date <= '{end_date}' 
 GROUP BY person_id
 
 -- Tobacco use 
@@ -1227,7 +1226,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed IN ('449868002', '428041000124106', '428061000124105', '428071000124103', '8517006', '266919005', '77176002', '56294008') OR id.icd10 = 'Z72.0' OR id.icd10 LIKE 'F17.%'
 AND person_id IN (SELECT pt_id FROM #Demographics)
-AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+AND condition_start_date <= '{end_date}' 
 GROUP BY person_id
 
 -- Alcohol use 
@@ -1241,7 +1240,7 @@ FROM omop.cdm_phi.condition_occurrence AS co
 INNER JOIN #ICD_dict id ON co.condition_concept_code = id.snomed
 WHERE id.snomed IN ('160573003', '228276006', '228277002', '228278007', '228279004', '228281002', '15167005', '284591009', '66590003', '7200002')  OR id.icd10 LIKE 'F10.%'
 AND person_id IN (SELECT pt_id FROM #Demographics)
-AND condition_start_date <= '{end_date}' -- change me to the last encounter date
+AND condition_start_date <= '{end_date}' 
 GROUP BY person_id
 
 /*
@@ -1376,7 +1375,7 @@ INTO #Social_Alcohol
 FROM omop.cdm_phi.observation 
 WHERE observation_concept_name IN ('Assessment of alcohol use', 'History of Alcohol use Narrative',
     'How often do you have 6 or more drinks on 1 occasion', 'How often do you have a drink containing alcohol', 'How many standard drinks containing alcohol do you have on a typical day')
-    AND observation_date <= '{end_date}' -- change me to the last encounter date
+    AND observation_date <= '{end_date}' 
 GROUP BY person_id
 
 DROP TABLE IF EXISTS #Social_Smoking;
@@ -1408,7 +1407,7 @@ FROM omop.cdm_phi.observation
 WHERE observation_concept_name IN ('Cigarette consumption', 'Cigarettes smoked current (pack per day) - Reported', 
     'Tobacco usage screening', 'Smoking assessment',
 	'Smoking started', 'Date quit tobacco smoking')
-    AND observation_date <= '{end_date}' -- change me to the last encounter date
+    AND observation_date <= '{end_date}' 
 GROUP BY person_id
 
 DROP TABLE IF EXISTS #Social_Smoking_Narrative;
@@ -1420,7 +1419,7 @@ SELECT
 INTO #Social_Smoking_Narrative
 FROM omop.cdm_phi.observation
 WHERE observation_concept_name = 'History of Tobacco use Narrative'
-AND observation_date <= '{end_date}' -- change me to the last encounter date
+AND observation_date <= '{end_date}' 
 
 /*
  * Medications 
