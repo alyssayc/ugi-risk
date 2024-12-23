@@ -1782,6 +1782,9 @@ SELECT
 	fhx.famhx_barretts,
 
 	-- Meds 
+	meds.ASA_start_date, 
+	meds.NSAID_start_date,
+	meds.PPI_start_date,
 	CASE 
         WHEN meds.ASA_start_date IS NULL OR meds.ASA_start_date > e.visit_start_date THEN 0
         WHEN meds.ASA_start_date <= e.visit_start_date THEN 1 
