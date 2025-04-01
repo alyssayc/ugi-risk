@@ -31,6 +31,13 @@ AND visit_start_date BETWEEN '{start_date}' AND '{end_date}' -- change me
 AND visit_occurrence_id IS NOT NULL 
 AND xtn_visit_status_source_concept_name = 'Complete' -- ensures visit is completed 
 
+-- Create indexes on the temporary table 
+CREATE INDEX idx_visit_id ON #Encounters (visit_id);
+CREATE INDEX idx_visit_start_date ON #Encounters (visit_start_date);
+CREATE INDEX idx_xtn_visit_type ON #Encounters (encounter_type);
+CREATE INDEX idx_person_id ON #Encounters (pt_id);
+CREATE CLUSTERED INDEX cl_idx_visit_start_date ON #Encounters (visit_start_date);
+
 /*
  * Demographics. Nontemporal patient data 
  */
@@ -51,6 +58,10 @@ INNER JOIN omop.cdm_phi.concept gender_c ON gender_c.concept_id = p.gender_conce
 INNER JOIN omop.cdm_phi.concept race_c ON race_c.concept_id = p.race_concept_id
 INNER JOIN omop.cdm_phi.concept ethnicity_c ON ethnicity_c.concept_id = p.ethnicity_concept_id 
 WHERE person_id IN (SELECT pt_id FROM #Encounters)
+
+-- Create indexes on the temporary table #Demographics
+CREATE INDEX idx_pt_id ON #Demographics (pt_id);
+CREATE INDEX idx_dob ON #Demographics (dob);
 
 /*
  * Measurement tables 
