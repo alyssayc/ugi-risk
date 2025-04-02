@@ -6,9 +6,10 @@ from pathlib import Path
 import argparse
 import os
 import re
+import glob
 
 # Define directory 
-sql_path = './'  # Current directory where the batch SQL files are stored 
+sql_path = Path('./sql_batches/')  # Current directory where the batch SQL files are stored 
 output_path = Path(__file__).resolve().parent.parent / 'data'  # Navigates up two parents from the current file and into the data dir
 
 # Set MSDW database configurations 
@@ -22,7 +23,7 @@ config = {
 }
 
 # Prompt user for their password (only once)
-# password = getpass.getpass(prompt='Enter your password: ')
+password = getpass.getpass(prompt='Enter your password: ')
 # password = "your password"
 
 # Connect to MSDW or Caboodle once
@@ -43,17 +44,22 @@ for sql_filename in os.listdir(sql_path):
     pattern = r'batch_.*\.sql'
     if not re.match(pattern, sql_filename): continue 
 
-    # For each SQL batch file 
-    # Create the output filename 
+    # For each SQL batch file, create the corresponding output filename 
     output_filename = re.sub(r'batch', 'data', sql_filename)
     output_filename = re.sub(r'\.sql$', '.csv.gz', output_filename)
+    
+    # Check to see if that data batch already exists, if so then skip 
+    existing_file = glob.glob(os.path.join(output_path, output_filename))
+    if existing_file:
+        print(f"Data file {output_filename} already exists. Skipping...")
+        continue 
     
     # Print the output name 
     print(f'Output filename: {output_filename}')
 
     try:
         # Read the SQL file
-        with open(sql_filename, 'r') as file:
+        with open(sql_path / sql_filename, 'r') as file:
             sql_query = file.read()
 
         try:
@@ -64,6 +70,13 @@ for sql_filename in os.listdir(sql_path):
             print(f'Executing the query from {sql_filename}...')
             cursor.execute(sql_query)
             print('Executed the SQL query!')
+
+            query_end_time = datetime.now()
+            print(f'Query end time: {query_end_time.strftime("%Y-%m-%d %H:%M:%S")}')
+            duration = (query_end_time - start_time).total_seconds()
+            minutes = int(duration // 60)
+            seconds = int(duration % 60)
+            print(f'Total query time: {minutes} minutes and {seconds} seconds.')
 
             # Fetch the data
             print('Fetching the data!')
