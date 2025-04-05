@@ -3,6 +3,7 @@ from pathlib import Path
 
 # Define directory path variable
 directory = Path('./../sql/')
+output_folder = directory / Path('sql_batches')
 
 # Define main query filename and how to name updated queries 
 query_file = 'main.sql'
@@ -31,7 +32,7 @@ def main(start_date, end_date):
     updated_sql = update_date_range(sql_template, start_date, end_date)
     
     # Save the updated SQL query to a new file specified above 
-    save_updated_sql(updated_sql, output_file)
+    save_updated_sql(updated_sql, output_folder / output_file)
     
     # Print a message to indicate the file has been saved
     print(f"Updated SQL query has been saved to {output_file}")

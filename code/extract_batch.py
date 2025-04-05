@@ -9,8 +9,8 @@ import re
 import glob
 
 # Define directory 
-sql_path = Path('./sql_batches/')  # Current directory where the batch SQL files are stored 
-output_path = Path(__file__).resolve().parent.parent / 'data'  # Navigates up two parents from the current file and into the data dir
+sql_path = Path('./../sql/sql_batches/')  # Current directory where the batch SQL files are stored 
+output_path = Path('./../data')  
 
 # Set MSDW database configurations 
 config = {
@@ -23,7 +23,7 @@ config = {
 }
 
 # Prompt user for their password (only once)
-password = getpass.getpass(prompt='Enter your password: ')
+password = getpass.getpass(prompt='Enter your Mount Sinai Data Warehouse password to connect to the database: ')
 # password = "your password"
 
 # Connect to MSDW or Caboodle once
@@ -54,9 +54,6 @@ for sql_filename in os.listdir(sql_path):
         print(f"Data file {output_filename} already exists. Skipping...")
         continue 
     
-    # Print the output name 
-    print(f'Output filename: {output_filename}')
-
     try:
         # Read the SQL file
         with open(sql_path / sql_filename, 'r') as file:
@@ -88,7 +85,7 @@ for sql_filename in os.listdir(sql_path):
 
             # Save the result to a CSV file
             df.to_csv(output_path / output_filename, compression='gzip', index=False)
-            print(f'Results for {sql_filename} saved as {output_path / output_filename}')
+            print(f'Results saved as {output_path / output_filename}')
 
             # Calculate and print execution time 
             end_time = datetime.now()
@@ -96,10 +93,10 @@ for sql_filename in os.listdir(sql_path):
             duration = (end_time - start_time).total_seconds()
             minutes = int(duration // 60)
             seconds = int(duration % 60)
-            print(f'Total execution time: {minutes} minutes and {seconds} seconds.')
+            print(f'Total execution time: {minutes} minutes and {seconds} seconds.\n\n')
             
         except Exception as e:
-            print(f"Error executing {sql_filename}: {e}")
+            print(f"Error executing {sql_filename}: {e}\n\n")
 
     # Catch errors related to the SQL file or database connection
     except Exception as e:

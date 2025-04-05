@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Input start and end dates (format: YYYY-MM-DD)
-start_date="2011-01-01"
-end_date="2023-12-12"
+start_date="2020-01-01"
+end_date="2020-12-31"
 
 # Convert start and end dates to date objects for manipulation
 current_date=$start_date
@@ -12,7 +12,7 @@ final_date=$end_date
 while [[ "$current_date" < "$final_date" ]]; do
     # Calculate the end date for the current period (6 months later)
     # end_of_period=$(date -I -d "$current_date + 6 months") #Linux-based systems
-    end_of_period=$(date -v+6m -j -f "%Y-%m-%d" "$current_date" "+%Y-%m-%d") #Mac-based systems
+    end_of_period=$(date -v+15d -j -f "%Y-%m-%d" "$current_date" "+%Y-%m-%d") #Mac-based systems #1m
     
     # Make sure we don't exceed the final date
     if [[ "$end_of_period" > "$final_date" ]]; then
@@ -31,5 +31,22 @@ while [[ "$current_date" < "$final_date" ]]; do
     current_date=$(date -v+1d -j -f "%Y-%m-%d" "$current_date" "+%Y-%m-%d") #MacOS systems 
 done
 
+# Function to check VPN connection by pinging
+check_vpn_connection() {
+    # Ping the VPN server or DNS (this is a simple way to test if the VPN is up)
+    if ping -c 1 8.8.8.8 &>/dev/null; then
+        echo "VPN is connected."
+    else
+        echo "VPN is not connected, please connect to access MSDW. Exiting script..."
+        exit 1
+    fi
+}
+
+# Run the check and wait for 10 seconds before the next check
+while true; do
+    check_vpn_connection
+    sleep 300  # Wait 5 minutes before checking again
+done &  # Run this in the background
+
 # Loop through the batch sql files, execute the sql files, and store the data in data/data_***.csv.gz 
-# python3 extract_batch.py 
+python extract_batch.py 
