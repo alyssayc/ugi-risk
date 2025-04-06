@@ -220,7 +220,7 @@ def main():
 
     # Filenames to be saved as 
     today_date = datetime.now().strftime('%Y%m%d') # Get today's date
-    consort_diagram_numbers_filename = "consort_diagram_numbers_{today_date}.txt"
+    consort_diagram_numbers_filename = f"consort_diagram_numbers_{today_date}.txt"
     final_data_file = f'cleaned_cohort_{today_date}.csv'
 
     # Get the data filenames
