@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Input start and end dates (format: YYYY-MM-DD)
-start_date="2020-01-01"
-end_date="2020-12-31"
+start_date=$1 #"2011-01-01"
+end_date=$2 #"2013-12-31"
 
 # Convert start and end dates to date objects for manipulation
 current_date=$start_date
@@ -31,6 +31,10 @@ while [[ "$current_date" < "$final_date" ]]; do
     current_date=$(date -v+1d -j -f "%Y-%m-%d" "$current_date" "+%Y-%m-%d") #MacOS systems 
 done
 
+# Get MSDW user password 
+echo "Enter your Mount Sinai Data Warehouse password to connect to the database: "
+read -s password 
+
 # Function to check VPN connection by pinging
 check_vpn_connection() {
     # Ping the VPN server or DNS (this is a simple way to test if the VPN is up)
@@ -42,11 +46,20 @@ check_vpn_connection() {
     fi
 }
 
-# Run the check and wait for 10 seconds before the next check
+# Run the check and wait for 5 mins before the next check
 while true; do
     check_vpn_connection
-    sleep 300  # Wait 5 minutes before checking again
+    sleep 300  # Wait 10 minutes before checking again
 done &  # Run this in the background
 
 # Loop through the batch sql files, execute the sql files, and store the data in data/data_***.csv.gz 
-python extract_batch.py 
+# Extract data via multiple processes by year 
+
+# Split the start_date and end_date by "-" and get the first item (the year)
+start_year=$(echo $start_date | cut -d'-' -f1)
+end_year=$(echo $end_date | cut -d'-' -f1)
+
+# Loop from the start_year_int to end_year_int and print each year
+for extraction_year in $(seq $start_year $end_year); do
+    python extract_batch.py --year "$extraction_year" --password "$password"
+done
