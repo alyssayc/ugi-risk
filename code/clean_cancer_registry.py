@@ -67,12 +67,13 @@ def main():
     df['ugica_EAC'] = np.where(df.subtype == 'EAC', 1, 0)
     df['ugica_CGC'] = np.where(df.subtype == 'CGC', 1, 0)
     df['ugica_NCGC'] = np.where(df.subtype == 'NCGC', 1, 0)
+    df['ugica_other'] = np.where(~df.subtype.isin(['NCGC', 'CGC', 'EAC', 'ESCC']), 1, 0)
 
     # Export the data
     columns_of_interest = ['mrn',
        'datetime_contact', 'datetime_dob', 'datetime_dx', 'datetime_dx_real', 
        'primary_tumor_site', 'primary_tumor_site_2', 'histology', 'subtype', 
-       'ugica_ESCC', 'ugica_EAC', 'ugica_CGC', 'ugica_NCGC']
+       'ugica_ESCC', 'ugica_EAC', 'ugica_CGC', 'ugica_NCGC', 'ugica_other']
     final_df = df[columns_of_interest]
     print(f'\nDate range of UGI diagnoses: {final_df.datetime_dx.min()} - {final_df.datetime_dx.max()}')
 
