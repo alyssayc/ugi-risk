@@ -423,8 +423,8 @@ COLNAMES_COHORT = [
 ]
 
 RACE_DICT = {
-    'no matching concept': np.nan,
-    'prefer not to say': np.nan,
+    'no matching concept': "No matching concept",
+    'prefer not to say': "No matching concept",
     'mixed racial group': "Other",
     'white': "White",
     'american indian or alaska native': "Other",
@@ -477,8 +477,11 @@ CATEGORICAL_VARS = [
     "encounter_type",
 
     "sex", 
+    "sex_missing",
     "race_clean", 
+    "race_clean_missing",
     "ethnicity", 
+    "ethnicity_missing",
     "social_language", 
     
     "alcohol_all",
@@ -512,6 +515,8 @@ CATEGORICAL_VARS = [
 NUMERICAL_VARS = [
     "days_to_event",
     "months_to_event",
+    "days_to_dx",
+    "days_to_death",
 
     'height_baseline_m',
     'weight_baseline_kg',
@@ -519,6 +524,8 @@ NUMERICAL_VARS = [
     'BMI_baseline', 
 
     'hgball_baseline', 
+    'hgball_baseline_imputed_mean',
+
     'hgb_baseline', 
     'mcv_baseline', 
     'wbc_baseline', 

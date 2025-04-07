@@ -128,8 +128,14 @@ def clean_data(df):
     df['diagnosis_year'] = df.datetime_dx.dt.year
     df['death_year'] = df.date_of_death.dt.year
 
+    # Create two variables per categorical where missing = a category and null for easier data processing later
+    # _missing will have nulls
+    df['sex_missing'] = np.where(df.sex == "No matching concept", np.nan, df.sex) 
+    df['ethnicity_missing'] = np.where(df.ethnicity == "No matching concept", np.nan, df.ethnicity) 
+
     # Clean up race variable 
     df['race_clean'] = df.race.str.lower().map(utils.RACE_DICT)
+    df['race_clean_missing'] = np.where(df.race_clean == "No matching concept", np.nan, df.race_clean)
 
     # Create two cleaned H pylori variables
     # Impute missing = 0 
@@ -168,6 +174,10 @@ def clean_data(df):
     df['PPI'] = df['PPI_start_date'].notna().astype(int)
     df['ASA'] = df['ASA_start_date'].notna().astype(int)
     df['NSAID'] = df['NSAID_start_date'].notna().astype(int)
+
+    # Impute hemoglobin 
+    hgball_mean = df.hgb_baseline.mean()
+    df['hgball_baseline_imputed_mean'] = np.where(df.hgball_baseline.isna(), hgball_mean, df.hgball_baseline)
 
     # Create column for all UGI cancers together (stomach and esophagus)
     df['ugica'] = df[['ugica_ESCC', 'ugica_EAC', 'ugica_CGC', 'ugica_NCGC']].max(axis=1)
