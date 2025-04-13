@@ -37,6 +37,21 @@ def apply_exclusion_criteria(data_dir, file_list, ugi_file, consort_diagram_numb
     num_enc_excl_duplicates = df_chunks.shape[0] - df_patients.shape[0]
     num_pt_excl_duplicates = df_chunks.pt_id.nunique() - df_patients.pt_id.nunique()
 
+    # Calculate BMI based on height and weight
+    bmi_series = utils.calculate_bmi(df_patients['height_baseline'], df_patients['weight_baseline'])
+    df_patients = pd.concat([df_patients, pd.DataFrame({'BMI_baseline_all': bmi_series})], axis=1)
+
+    # Count and calculate the percentage of non-null values
+    columns = ["height_baseline", "weight_baseline", "BMI_baseline", 'BMI_baseline_all']
+    non_null_counts = df_patients[columns].notnull().sum()
+    non_null_percentages = (non_null_counts / len(df_patients)) * 100
+
+    summary = pd.DataFrame({
+        "non_null_count": non_null_counts,
+        "non_null_percent": non_null_percentages.round(2)
+    })
+    print(summary)
+
     # Read UGI cancer registry data 
     df_ugi = pd.read_csv(data_dir / ugi_file, low_memory=False) #, index_col = False)
 
@@ -49,25 +64,6 @@ def apply_exclusion_criteria(data_dir, file_list, ugi_file, consort_diagram_numb
     print(f'Number of patients in registry without matching MRN: {df_ugi_first.shape[0] - df_merged.datetime_dx.notnull().sum()}')
     print(f'Number of patients in registry with matching MRN: {int(((df_merged.pt_id.notnull()) & df_merged.datetime_dx.notnull()).sum())}')
 
-    # Convert height from inches to meters and weight from ounces to kg
-    inches_to_meters = 0.0254
-    ounces_to_kg = 0.0283495
-
-    df_merged['height_baseline_m'] = df_merged['height_baseline'] * inches_to_meters
-    df_merged['weight_baseline_kg'] = df_merged['weight_baseline'] * ounces_to_kg
-    df_merged['BMI_baseline_all'] = df_merged['weight_baseline_kg'] / df_merged['height_baseline_m']**2
-
-    # Count and calculate the percentage of non-null values
-    columns = ["height_baseline", "weight_baseline", "BMI_baseline", 'BMI_baseline_all']
-    non_null_counts = df_merged[columns].notnull().sum()
-    non_null_percentages = (non_null_counts / len(df_merged)) * 100
-
-    summary = pd.DataFrame({
-        "non_null_count": non_null_counts,
-        "non_null_percent": non_null_percentages.round(2)
-    })
-    print(summary)
-
     # Convert to datetime 
     date_vars = ['visit_start_date', 'datetime_dx', 'date_of_death']
     for date_var in date_vars: 
@@ -75,12 +71,12 @@ def apply_exclusion_criteria(data_dir, file_list, ugi_file, consort_diagram_numb
 
     # Define exclusion criteria 
     excl_dx_before_visit = (df_merged.visit_start_date > df_merged.datetime_dx) # Pts whose UGI cancer diagnosis occured before the visit date
-    excl_dx_soon_after_visit = ((df_merged.visit_start_date + pd.DateOffset(months=12)) >= df_merged.datetime_dx) # Pts whose UGI cancer diagnosis occured less than 12 months after the visit date
+    excl_dx_soon_after_visit = ((df_merged.datetime_dx >= df_merged.visit_start_date) & (df_merged.datetime_dx < (df_merged.visit_start_date + pd.DateOffset(months=12)))) # Pts whose UGI cancer diagnosis occured less than 12 months after the visit date
     excl_gastrichx = (df_merged.gastricca == 1.0) & (df_merged.primary_tumor_site.isna()) # Pts who had a hx of gastric cancer as part of their PMHx but not included in the registry
     excl_esophagealhx = (df_merged.esophagealca == 1.0) & (df_merged.primary_tumor_site.isna()) # Pts who had a hx of esophageal cancer as part of their PMHx but not included in the registry
     excl_otherugicahx = (df_merged.ugica_other == 1) # Pts who were in the registry for other UGI cancer 
-    excl_death = (df_merged.visit_start_date <= df_merged.date_of_death) # Pts whose death date is documented as prior to or day of encounter date
-    excl_bmi_missing = (df_merged.BMI_baseline_all.isna()) # Pts who has missing BMI, aka not seen in person for the last 6 months 
+    excl_death = ((df_merged.date_of_death.notnull()) & (df_merged.visit_start_date >= df_merged.date_of_death)) # Pts whose death date is documented as prior to or day of encounter date
+    # excl_bmi_missing = (df_merged.BMI_baseline_all.isna()) # Pts who has missing BMI, aka not seen in person for the last 6 months 
 
     # Calculate number of pts excluded
     num_pt_excl_age = len(pts_incl) - df_chunks.pt_id.nunique()
@@ -90,10 +86,10 @@ def apply_exclusion_criteria(data_dir, file_list, ugi_file, consort_diagram_numb
     num_pt_excl_esophagealhx = excl_esophagealhx.sum()
     num_pt_excl_otherugicahx = excl_otherugicahx.sum()
     num_pt_excl_death = excl_death.sum()
-    num_pt_excl_bmi_missing = excl_bmi_missing.sum()
+    # num_pt_excl_bmi_missing = excl_bmi_missing.sum()
 
     # Apply exclusion criteria 
-    df_cohort = df_merged[~(excl_dx_before_visit | excl_dx_soon_after_visit | excl_gastrichx | excl_esophagealhx | excl_otherugicahx | excl_death | excl_bmi_missing)]
+    df_cohort = df_merged[~(excl_dx_before_visit | excl_dx_soon_after_visit | excl_gastrichx | excl_esophagealhx | excl_otherugicahx | excl_death)]
 
     # Total (non-sequential) exclusion numbers for cohort
     output = (
@@ -106,7 +102,7 @@ def apply_exclusion_criteria(data_dir, file_list, ugi_file, consort_diagram_numb
         f'Excluded - esophageal ca hx not confirmed: {num_pt_excl_esophagealhx} patients\n'
         f'Excluded - other UGI cancer subtype: {num_pt_excl_otherugicahx} patients\n'
         f'Excluded - death prior to enc: {num_pt_excl_death} patients\n'
-        f'Excluded - BMI missing: {num_pt_excl_bmi_missing} patients\n'
+        #f'Excluded - BMI missing: {num_pt_excl_bmi_missing} patients\n'
         f'Cohort: {df_cohort.shape[0]} encounters, {df_cohort.pt_id.nunique()} patients\n'
     )
 
@@ -119,13 +115,18 @@ def apply_exclusion_criteria(data_dir, file_list, ugi_file, consort_diagram_numb
     # Investigate which UGI cases are being excluded and why 
     # Merge UGI registry with necessary Epic data
     df_ugi_exclusions = df_ugi.merge(df_patients, on='mrn', how='left')
-    df_ugi_exclusions['excl_dx_before_visit'] = excl_dx_before_visit.astype(int)
-    df_ugi_exclusions['excl_dx_soon_after_visit'] = excl_dx_soon_after_visit.astype(int)
-    df_ugi_exclusions['excl_gastrichx'] = excl_gastrichx.astype(int)
-    df_ugi_exclusions['excl_esophagealhx'] = excl_esophagealhx.astype(int)
-    df_ugi_exclusions['excl_otherugicahx'] = excl_otherugicahx.astype(int)
-    df_ugi_exclusions['excl_death'] = excl_death.astype(int)
-    df_ugi_exclusions['excl_bmi_missing'] = excl_bmi_missing.astype(int)
+
+    # Convert to datetime 
+    date_vars = ['visit_start_date', 'datetime_dx', 'date_of_death']
+    for date_var in date_vars: 
+        df_ugi_exclusions[date_var] = pd.to_datetime(df_ugi_exclusions[date_var], errors='coerce')
+
+    df_ugi_exclusions['excl_dx_before_visit'] = (df_ugi_exclusions.visit_start_date > df_ugi_exclusions.datetime_dx) # Pts whose UGI cancer diagnosis occured before the visit date
+    df_ugi_exclusions['excl_dx_soon_after_visit'] = ((df_ugi_exclusions.datetime_dx >= df_ugi_exclusions.visit_start_date) & (df_ugi_exclusions.datetime_dx < (df_ugi_exclusions.visit_start_date + pd.DateOffset(months=12)))) # Pts whose UGI cancer diagnosis occured less than 12 months after the visit date
+    df_ugi_exclusions['excl_gastrichx'] = (df_ugi_exclusions.gastricca == 1.0) & (df_ugi_exclusions.primary_tumor_site.isna()).astype(int) # Pts who had a hx of gastric cancer as part of their PMHx but not included in the registry
+    df_ugi_exclusions['excl_esophagealhx'] = (df_ugi_exclusions.esophagealca == 1.0) & (df_ugi_exclusions.primary_tumor_site.isna()).astype(int) # Pts who had a hx of esophageal cancer as part of their PMHx but not included in the registry
+    df_ugi_exclusions['excl_otherugicahx'] = (df_ugi_exclusions.ugica_other == 1).astype(int) # Pts who were in the registry for other UGI cancer 
+    df_ugi_exclusions['excl_death'] = ((df_ugi_exclusions.date_of_death.notnull()) & (df_ugi_exclusions.visit_start_date >= df_ugi_exclusions.date_of_death)) # Pts whose death date is documented as prior to or day of encounter date
 
     # Save the UGI data with the exclusion criteria 
     df_ugi_exclusions.to_csv(data_dir / "ugicancer_registry_exclusion.csv")
