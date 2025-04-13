@@ -116,6 +116,20 @@ def apply_exclusion_criteria(data_dir, file_list, ugi_file, consort_diagram_numb
     with open(data_dir / consort_diagram_numbers_filename, "w") as file:
         file.write(output)
 
+    # Investigate which UGI cases are being excluded and why 
+    # Merge UGI registry with necessary Epic data
+    df_ugi_exclusions = df_ugi.merge(df_patients, on='mrn', how='left')
+    df_ugi_exclusions['excl_dx_before_visit'] = excl_dx_before_visit.astype(int)
+    df_ugi_exclusions['excl_dx_soon_after_visit'] = excl_dx_soon_after_visit.astype(int)
+    df_ugi_exclusions['excl_gastrichx'] = excl_gastrichx.astype(int)
+    df_ugi_exclusions['excl_esophagealhx'] = excl_esophagealhx.astype(int)
+    df_ugi_exclusions['excl_otherugicahx'] = excl_otherugicahx.astype(int)
+    df_ugi_exclusions['excl_death'] = excl_death.astype(int)
+    df_ugi_exclusions['excl_bmi_missing'] = excl_bmi_missing.astype(int)
+
+    # Save the UGI data with the exclusion criteria 
+    df_ugi_exclusions.to_csv(data_dir / "ugicancer_registry_exclusion.csv")
+
     return df_cohort
 
 def clean_data(df):
@@ -182,6 +196,7 @@ def clean_data(df):
     # Create column for all UGI cancers together (stomach and esophagus)
     df['ugica'] = df[['ugica_ESCC', 'ugica_EAC', 'ugica_CGC', 'ugica_NCGC']].max(axis=1)
     df.loc[df.ugica.isna(), 'ugica'] = 0
+    df['subtype'] = np.where(df.subtype.isna(), "None", df.subtype)
 
     # Create other outcome variables 
     df['death'] = df.death_year.notna().astype(int)
