@@ -513,6 +513,7 @@ CATEGORICAL_VARS = [
 ]
  
 NUMERICAL_VARS = [
+    "age", 
     "days_to_event",
     "months_to_event",
     "days_to_dx",
