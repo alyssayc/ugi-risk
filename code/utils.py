@@ -530,8 +530,8 @@ NUMERICAL_VARS = [
     "days_to_dx",
     "days_to_death",
 
-    'height_baseline_m',
-    'weight_baseline_kg',
+    'height_baseline',
+    'weight_baseline',
     'BMI_baseline_all',
     'BMI_baseline', 
 
