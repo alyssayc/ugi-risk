@@ -1,0 +1,6 @@
+sql/sql_batches
+.DS_Store
+notebook/__pycache__/
+notebook/consort_diagram_numbers.txt
+data/
+results/
