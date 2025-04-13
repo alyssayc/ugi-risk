@@ -55,7 +55,18 @@ def get_cancer_subtype(df_row):
     else:
         # You can add any specific checks here for "small intestine" or other site types if needed.
         return site
+    
+def calculate_bmi(height, weight):
+    """Takes a height and weight series and returns the BMI as a series."""
+    # Convert height from inches to meters and weight from ounces to kg
+    inches_to_meters = 0.0254
+    ounces_to_kg = 0.0283495
 
+    height_baseline_m = height * inches_to_meters
+    weight_baseline_kg = weight * ounces_to_kg
+    BMI_baseline_all = weight_baseline_kg / height_baseline_m**2
+    
+    return BMI_baseline_all
 
 def convert_date_dx(date):
     """
