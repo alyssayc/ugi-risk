@@ -157,12 +157,13 @@ def clean_data(df):
     # Chronic = all testing including other serologies and PMHx 
     # var_missing will have nulls, var will have "No matching concept"
 
-    df['hpylori_active_missing'] = df.apply(utils.clean_hpylori, axis=1) # Only stool and breath testing
-    df['hpylori_active_missing'] = df['hpylori_active_missing'].apply(lambda x: np.nan if x == -1 else x)
-    df['hpylori_active'] = df['hpylori_active'].apply(lambda x: "No matching concept" if pd.isna(x) else x)
+    df['hpylori_active'] = df.apply(utils.clean_hpylori, axis=1) # Only stool and breath testing
     df['hpylori_active_chronic_missing'] = df.apply(utils.clean_hpylori_serology, axis=1) # Incorporate Hpylori serology and PMHx
+
+    df['hpylori_active_missing'] = df['hpylori_active'].apply(lambda x: np.nan if x == -1 else x)
+    df['hpylori_active'] = df['hpylori_active_missing'].apply(lambda x: "No matching concept" if pd.isna(x) else x)
     df['hpylori_active_chronic_missing'] = df['hpylori_active_chronic_missing'].apply(lambda x: np.nan if x == -1 else x)
-    df['hpylori_active_chronic'] = df['hpylori_active_chronic'].apply(lambda x: "No matching concept" if pd.isna(x) else x)
+    df['hpylori_active_chronic'] = df['hpylori_active_chronic_missing'].apply(lambda x: "No matching concept" if pd.isna(x) else x)
     df['hpylori_active_chronic_binary'] = df['hpylori_active_chronic_missing'].apply(lambda x: 1 if x == 1 else 0) # assume H pylori is negative if testing does not exist (null)
 
     # Create a comprehensive tobacco and alcohol variable by merging data obtained from PMHx and social history.
