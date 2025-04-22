@@ -8,8 +8,7 @@ python clean_cancer_registry.py
 cd ../data || exit
 
 # Run ls | grep to get all the batched data files in one text file 
-# ls | grep -E '^data_20[0-9]{2}-[0-9]{2}-[0-9]{2}_20[0-9]{2}-[0-9]{2}-[0-9]{2}\.csv\.gz$' > all_data_files.txt
-ls | grep -E '^data_2022-[0-9]{2}-[0-9]{2}_2022-[0-9]{2}-[0-9]{2}\.csv\.gz$' > all_data_files.txt
+ls | grep -E '^data_20[0-9]{2}-[0-9]{2}-[0-9]{2}_20[0-9]{2}-[0-9]{2}-[0-9]{2}\.csv\.gz$' > all_data_files.txt
 
 # Return to the original directory 
 cd "$current_dir" || exit

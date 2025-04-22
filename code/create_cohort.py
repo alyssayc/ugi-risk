@@ -143,8 +143,8 @@ def clean_data(df):
     df['diagnosis_year'] = df.datetime_dx.dt.year
     df['death_year'] = df.date_of_death.dt.year
 
-    # Create two variables per categorical where missing = a category and null for easier data processing later
-    # _missing will have nulls
+    # Create two variables per categorical var for easier data processing later
+    # var_missing will have nulls, var will have "No matching concept"
     df['sex_missing'] = np.where(df.sex == "No matching concept", np.nan, df.sex) 
     df['ethnicity_missing'] = np.where(df.ethnicity == "No matching concept", np.nan, df.ethnicity) 
 
@@ -152,23 +152,31 @@ def clean_data(df):
     df['race_clean'] = df.race.str.lower().map(utils.RACE_DICT)
     df['race_clean_missing'] = np.where(df.race_clean == "No matching concept", np.nan, df.race_clean)
 
-    # Create two cleaned H pylori variables
-    # Impute missing = 0 
-    df['hpylori_active'] = df.apply(utils.clean_hpylori, axis=1) # Only stool and breath testing
+    # Create H pylori variables
+    # Active = only stool and breath testing
+    # Chronic = all testing including other serologies and PMHx 
+    # var_missing will have nulls, var will have "No matching concept"
+
+    df['hpylori_active_missing'] = df.apply(utils.clean_hpylori, axis=1) # Only stool and breath testing
+    df['hpylori_active_missing'] = df['hpylori_active_missing'].apply(lambda x: np.nan if x == -1 else x)
+    df['hpylori_active'] = df['hpylori_active'].apply(lambda x: "No matching concept" if pd.isna(x) else x)
     df['hpylori_active_chronic_missing'] = df.apply(utils.clean_hpylori_serology, axis=1) # Incorporate Hpylori serology and PMHx
-    df['hpylori_active_chronic_binary'] = df['hpylori_active_chronic_missing'].apply(lambda x: 1 if x==1 else 0)
-    df['hpylori_active_chronic'] = df['hpylori_active_chronic_missing'].apply(lambda x: x if x in [0, 1] else -1)
+    df['hpylori_active_chronic_missing'] = df['hpylori_active_chronic_missing'].apply(lambda x: np.nan if x == -1 else x)
+    df['hpylori_active_chronic'] = df['hpylori_active_chronic'].apply(lambda x: "No matching concept" if pd.isna(x) else x)
+    df['hpylori_active_chronic_binary'] = df['hpylori_active_chronic_missing'].apply(lambda x: 1 if x == 1 else 0) # assume H pylori is negative if testing does not exist (null)
 
     # Create a comprehensive tobacco and alcohol variable by merging data obtained from PMHx and social history.
     df['tobacco_all'] = df[['tobacco', 'social_smoking_ever']].max(axis=1)
+    df['tobacco_all'] = df['tobacco_all'].apply(lambda x: "No matching concept" if pd.isna(x) or x ==- 1 else x)
     df['alcohol_all'] = df[['alcohol', 'social_alcohol']].max(axis=1)
+    df['alcohol_all'] = df['alcohol_all'].apply(lambda x: "No matching concept" if pd.isna(x) or x ==- 1 else x)
 
     # Create additional vars for alcohol and tobacco to analyze 
-    df['alcohol_all_missing'] = df['alcohol_all'].apply(lambda x: np.nan if x == -1 else x)
+    df['alcohol_all_missing'] = df['alcohol_all'].apply(lambda x: np.nan if x == "No matching concept" else x)
     df['alcohol_binary_missing'] = df['alcohol_all_missing'].apply(lambda x: 1 if x == 2 else x)
     df['alcohol_binary'] = df['alcohol_all'].apply(lambda x: 1 if x in [1,2] else 0)
 
-    df['tobacco_all_missing'] = df['tobacco_all'].apply(lambda x: np.nan if x == -1 else x)
+    df['tobacco_all_missing'] = df['tobacco_all'].apply(lambda x: np.nan if x == "No matching concept" else x)
     df['tobacco_binary_missing'] = df['tobacco_all_missing'].apply(lambda x: 1 if x == 2 else x)
     df['tobacco_binary'] = df['tobacco_all'].apply(lambda x: 1 if x in [1,2] else 0)
 
