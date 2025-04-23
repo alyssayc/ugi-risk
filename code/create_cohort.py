@@ -150,6 +150,7 @@ def clean_data(df):
 
     # Clean up race variable 
     df['race_clean'] = df.race.str.lower().map(utils.RACE_DICT)
+    df['race_clean'] = df['race_clean'].apply(lambda x: "No matching concept" if pd.isna(x) else x)
     df['race_clean_missing'] = np.where(df.race_clean == "No matching concept", np.nan, df.race_clean)
 
     # Create H pylori variables

@@ -504,6 +504,7 @@ CATEGORICAL_VARS = [
     "tobacco_binary",
     "tobacco_binary_missing",
     "hpylori_active", 
+    "hpylori_active_missing", 
     "hpylori_active_chronic", 
     'hpylori_active_chronic_missing',
     'hpylori_active_chronic_binary',
