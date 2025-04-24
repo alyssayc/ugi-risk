@@ -489,6 +489,8 @@ CATEGORICAL_VARS = [
 
     "sex", 
     "sex_missing",
+    "sex_clean",
+    "sex_clean_missing",
     "race_clean", 
     "race_clean_missing",
     "ethnicity", 

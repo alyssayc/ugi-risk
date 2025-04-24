@@ -76,6 +76,7 @@ def apply_exclusion_criteria(data_dir, file_list, ugi_file, consort_diagram_numb
     excl_esophagealhx = (df_merged.esophagealca == 1.0) & (df_merged.primary_tumor_site.isna()) # Pts who had a hx of esophageal cancer as part of their PMHx but not included in the registry
     excl_otherugicahx = (df_merged.ugica_other == 1) # Pts who were in the registry for other UGI cancer 
     excl_death = ((df_merged.date_of_death.notnull()) & (df_merged.visit_start_date >= df_merged.date_of_death)) # Pts whose death date is documented as prior to or day of encounter date
+    excl_missing_mrn = ((df_merged.mrn.isna()) | (df_merged.mrn == "<>"))
     # excl_bmi_missing = (df_merged.BMI_baseline_all.isna()) # Pts who has missing BMI, aka not seen in person for the last 6 months 
 
     # Calculate number of pts excluded
@@ -86,10 +87,11 @@ def apply_exclusion_criteria(data_dir, file_list, ugi_file, consort_diagram_numb
     num_pt_excl_esophagealhx = excl_esophagealhx.sum()
     num_pt_excl_otherugicahx = excl_otherugicahx.sum()
     num_pt_excl_death = excl_death.sum()
+    num_pt_excl_missing_mrn = excl_missing_mrn.sum()
     # num_pt_excl_bmi_missing = excl_bmi_missing.sum()
 
     # Apply exclusion criteria 
-    df_cohort = df_merged[~(excl_dx_before_visit | excl_dx_soon_after_visit | excl_gastrichx | excl_esophagealhx | excl_otherugicahx | excl_death)]
+    df_cohort = df_merged[~(excl_dx_before_visit | excl_dx_soon_after_visit | excl_gastrichx | excl_esophagealhx | excl_otherugicahx | excl_death | excl_missing_mrn)]
 
     # Total (non-sequential) exclusion numbers for cohort
     output = (
@@ -102,6 +104,7 @@ def apply_exclusion_criteria(data_dir, file_list, ugi_file, consort_diagram_numb
         f'Excluded - esophageal ca hx not confirmed: {num_pt_excl_esophagealhx} patients\n'
         f'Excluded - other UGI cancer subtype: {num_pt_excl_otherugicahx} patients\n'
         f'Excluded - death prior to enc: {num_pt_excl_death} patients\n'
+        f'Excluded - missing mrn: {num_pt_excl_missing_mrn} patients\n'
         #f'Excluded - BMI missing: {num_pt_excl_bmi_missing} patients\n'
         f'Cohort: {df_cohort.shape[0]} encounters, {df_cohort.pt_id.nunique()} patients\n'
     )
@@ -146,6 +149,7 @@ def clean_data(df):
     # Create two variables per categorical var for easier data processing later
     # var_missing will have nulls, var will have "No matching concept"
     df['sex_missing'] = np.where(df.sex == "No matching concept", np.nan, df.sex) 
+    df['sex_clean_missing'] = np.where(df.sex_clean == "No matching concept", np.nan, df.sex_clean) 
     df['ethnicity_missing'] = np.where(df.ethnicity == "No matching concept", np.nan, df.ethnicity) 
 
     # Clean up race variable 
