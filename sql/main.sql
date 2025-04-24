@@ -44,8 +44,9 @@ CREATE CLUSTERED INDEX cl_idx_visit_start_date ON #Encounters (visit_start_date)
 
 DROP TABLE IF EXISTS #Demographics;
 SELECT
-	person_id as pt_id,
-	gender_c.concept_name as sex,
+	p.person_id as pt_id,
+	gender_c.concept_name as sex, -- Epic question is "What was the original sex written on original birth certificate?". This is a req field and some will enter "Not recorded on birth certificate" or "Unknown"
+    observation.value_as_string as gender_identity, -- Epic question is "How do you describe your gender identity?" This is an optional question intended to study gender identity. For those who have unknown sex, we impute gender identity. 
 	DATEFROMPARTS(year_of_birth, month_of_birth, day_of_birth) as dob,
 	race_c.concept_name as race,
 	ethnicity_c.concept_name as ethnicity,
@@ -55,9 +56,10 @@ SELECT
 INTO #Demographics
 FROM omop.cdm_phi.person p 
 INNER JOIN omop.cdm_phi.concept gender_c ON gender_c.concept_id = p.gender_concept_id 
+LEFT JOIN omop.cdm_phi.observation observation ON observation.person_id = p.person_id AND observation_concept_id = '4110772' -- gender identity concept
 INNER JOIN omop.cdm_phi.concept race_c ON race_c.concept_id = p.race_concept_id
 INNER JOIN omop.cdm_phi.concept ethnicity_c ON ethnicity_c.concept_id = p.ethnicity_concept_id 
-WHERE person_id IN (SELECT pt_id FROM #Encounters)
+WHERE p.person_id IN (SELECT pt_id FROM #Encounters)
 
 -- Create indexes on the temporary table #Demographics
 CREATE INDEX idx_pt_id ON #Demographics (pt_id);
@@ -1509,6 +1511,11 @@ SELECT
 
 	-- Demographics
 	d.sex,
+	d.gender_identity,
+	CASE 
+		WHEN d.sex = "No matching concept" THEN d.gender_identity
+		ELSE d.sex 
+	END AS sex_clean,
 	DATEDIFF(year, d.dob, e.visit_start_date) - 
 		(CASE WHEN MONTH(e.visit_start_date) < MONTH(d.dob) OR (MONTH(e.visit_start_date) = MONTH(d.dob) AND DAY(e.visit_start_date) < DAY(d.dob)) THEN 1
 		ELSE 0 END)
