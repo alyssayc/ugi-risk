@@ -10,5 +10,11 @@
         - Some diagnosis dates are also not the full date, but only include the year. For those with only the year of diagnosis, Jan 1 YYYY was imputed. 
         - `ugicancer_registry_notclassified.csv` will also be created, this is a deidentified csv of all tumor site and histology ICDs that did not meet one of the four subtypes for further manual review to ensure no cases were missed. 
     - Then runs `python create_cohort.py` which applys the exclusion criteria and cleans the data before returning the final cleaned cohort data. 
+2. `analysis_0` notebook normalizes continuous variables and creates the demographics table to be saved under `results/demographics_table.csv`. Then it saves the processed data ready for analysis under `df_analysis0.csv`. 
 
 # Data analysis
+1. Analysis 1
+- Notebooks prefixed with `analysis_1` all use a CoxPH model. Included features in the model were selected based on significance from univariate analysis. 
+- `analysis_1.ipynb` predicts risk for combined UGI cancer 
+- `analysis_1_[subtype].ipynb` predicts risk for the respective cancer subtype 
+- `analysis_1_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
