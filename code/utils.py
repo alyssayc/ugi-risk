@@ -148,7 +148,7 @@ def clean_hpylori(row):
     return np.nan
 
 def clean_hpylori_serology(row):
-    hpylori_active = float(row['hpylori_active'])
+    hpylori_active = float(row['hpylori_active_missing'])
     test = row['hpylori_earliest_test']
     value = str(row['hpylori_earliest_value']).strip().lower() 
     igg_high_range = row['hpylori_igg_range_high']
@@ -480,6 +480,10 @@ RACE_DICT = {
 
 CATEGORICAL_VARS = [
     "ugica",
+    "ugica_ESCC", 
+    "ugica_EAC", 
+    "ugica_CGC", 
+    "ugica_NCGC",
     "death",
     "subtype", 
 
@@ -489,8 +493,8 @@ CATEGORICAL_VARS = [
 
     "sex", 
     "sex_missing",
-    "sex_clean",
-    "sex_clean_missing",
+    # "sex_clean",
+    # "sex_clean_missing",
     "race_clean", 
     "race_clean_missing",
     "ethnicity", 
