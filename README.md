@@ -18,3 +18,9 @@
 - `analysis_1.ipynb` predicts risk for combined UGI cancer 
 - `analysis_1_[subtype].ipynb` predicts risk for the respective cancer subtype 
 - `analysis_1_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
+
+2. Analysis 2
+- Logistic regression model. Included features selected based on univariate analysis significance. 
+- `analysis_2.ipynb` predicts risk for combined UGI cancer 
+- `analysis_2_[subtype].ipynb` predicts risk for the respective cancer subtype 
+- `analysis_2_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
