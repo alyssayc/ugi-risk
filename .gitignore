@@ -4,3 +4,11 @@ notebook/__pycache__/
 notebook/consort_diagram_numbers.txt
 data/
 results/
+notebook/helpers/__init__.py
+notebook/helpers/__pycache__/
+code/__pycache__/
+code/__init__.py
+*.csv
+*.rds
+*.rds
+*.json
