@@ -20,7 +20,25 @@
 - `analysis_1_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
 
 2. Analysis 2
-- Logistic regression model. Included features selected based on univariate analysis significance. 
+- Logistic regression model. Included features selected based on univariate analysis significance. Trained on 5-year UTI cancer outcome to predict 5-year UGI cancer. 
+- `analysis_2.ipynb` predicts risk for combined UGI cancer 
+- `analysis_2_[subtype].ipynb` predicts risk for the respective cancer subtype 
+- `analysis_2_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
+
+3. Analysis 2.1
+- Logistic regression model. Included features selected based on univariate analysis significance. Trained on 3-year UTI cancer outcome to predict 3-year UGI cancer. 
+- `analysis_2.ipynb` predicts risk for combined UGI cancer 
+- `analysis_2_[subtype].ipynb` predicts risk for the respective cancer subtype 
+- `analysis_2_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
+
+4. Analysis 2.2
+- Logistic regression model. Included features selected based on univariate analysis significance. Trained on 10-year UTI cancer outcome to predict 10-year UGI cancer. 
+- `analysis_2.ipynb` predicts risk for combined UGI cancer 
+- `analysis_2_[subtype].ipynb` predicts risk for the respective cancer subtype 
+- `analysis_2_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
+
+5. Analysis 2 coef
+- Logistic regression model. Included features selected based on univariate analysis significance. Risk score derived from normalized beta coefficients. 
 - `analysis_2.ipynb` predicts risk for combined UGI cancer 
 - `analysis_2_[subtype].ipynb` predicts risk for the respective cancer subtype 
 - `analysis_2_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
