@@ -16,18 +16,25 @@ library(broom.helpers)
 library(purrr)
 library(gridExtra)
 
-# Ignore these columns
-cols_to_ignore <- c(
-    'months_to_event', 'ugica', 'ugica_ESCC', 'ugica_EAC', 'ugica_CGC', 'ugica_NCGC', 
-    'death', 'subtype', 'visit_year', 'diagnosis_year', 'encounter_type', 'social_language', 
-    'days_to_event', 'days_to_dx', 'days_to_death',
-    "sex", "tobacco_all", "tobacco_all_missing", "tobacco_binary_missing", "barretts", # Duplicate variables 
-    "race_clean_missing", "ethnicity_missing", "alcohol_all", "hpylori_active", "hpylori_active_chronic", 
-    "hgball_baseline_imputed_mean", "BMI_baseline", "height_baseline", 'weight_baseline',
-    "eac_risk_factors_screening", "meets_eac_screening", "age_bucket", "visit_year_bucket" # Vars for stratified analysis
+outcomes <- c(
+    'ugica', 'ugica_10yr', 'ugica_5yr', 'ugica_3yr', 'ugica_1yr',
+    'ugica_ESCC', 'escc_10yr', 'escc_5yr', 'escc_3yr', 'escc_1yr',
+    'ugica_EAC', 'eac_10yr', 'eac_5yr', 'eac_3yr', 'eac_1yr',
+    'ugica_CGC', 'cgc_10yr', 'cgc_5yr', 'cgc_3yr', 'cgc_1yr',
+    'ugica_NCGC', 'ncgc_10yr', 'ncgc_5yr', 'ncgc_3yr', 'ncgc_1yr'
 )
 
-subtype_outcomes <- c('ugica_ESCC', 'ugica_EAC', 'ugica_CGC', 'ugica_NCGC')
+# Ignore these columns
+cols_to_ignore <- c(
+  'months_to_event', 
+  'death', 'subtype', 'visit_year', 'diagnosis_year', 'encounter_type', 'social_language', 
+  'days_to_event', 'days_to_dx', 'days_to_death',
+  "sex", "tobacco_all", "tobacco_all_missing", "tobacco_binary_missing", "barretts", # Duplicate variables 
+  "race_clean_missing", "ethnicity_missing", "alcohol_all", "hpylori_active", "hpylori_active_chronic", 
+  "hgball_baseline_imputed_mean", "BMI_baseline", "height_baseline", 'weight_baseline',
+  "eac_risk_factors_screening", "meets_eac_screening", "age_bucket", "visit_year_bucket", # Vars for stratified analysis
+  outcomes 
+)
 
 # Variables to do stratified analysis on 
 cols_to_stratify <- c('race_clean', 'sex_missing', 'age_bucket', 'visit_year_bucket')
@@ -106,7 +113,7 @@ multivar_forestplot_pretty_names <- c(
 # Partitions data into training and validation set, percentage split p 
 partition_data <- function(data, selected_vars, outcome, seed = 123, p = 0.8) {
   rdf <- data %>%
-    select(months_to_event, ugica, all_of(subtype_outcomes), all_of(selected_vars), all_of(cols_to_stratify)) %>%
+    select(months_to_event, all_of(outcomes), all_of(selected_vars), all_of(cols_to_stratify)) %>%
     drop_na()
   
   set.seed(seed)
@@ -396,19 +403,31 @@ calculate_cm_by_percentile <- function(risk, event, threshold) {
 
 # Plots ROC curve
 plot_roc_gg <- function(event, risk) {
-  roc_obj <- roc(event, risk)
+  roc_obj <- roc(event, risk, quiet = TRUE)
   df <- data.frame(
     FPR = 1 - roc_obj$specificities,
     TPR = roc_obj$sensitivities
   )
-  auroc <- round(auc(roc_obj), 2)
+  auroc <- round(auc(roc_obj), 3)
 
   ggplot(df, aes(x = FPR, y = TPR)) +
-    geom_line(color = "blue", size = 1.2) +
-    geom_abline(linetype = "dashed", color = "gray") +
-    annotate("text", x = 0.6, y = 0.1, label = paste("AUROC =", auroc), size = 5) +
-    labs(title = "ROC Curve", x = "False Positive Rate", y = "True Positive Rate") +
-    theme_minimal()
+    geom_line(color = "navyblue", size = 1.2) +  # Better color
+    geom_abline(linetype = "dashed", color = "gray50") +
+    annotate("text", x = 0.65, y = 0.05, label = paste("AUROC =", auroc),
+             size = 5, hjust = 0, fontface = "italic") +
+    labs(
+      title = "Receiver Operating Characteristic (ROC) Curve",
+      x = "False Positive Rate (1 - Specificity)",
+      y = "True Positive Rate (Sensitivity)"
+    ) +
+    coord_equal() +
+    theme_minimal(base_size = 16) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      axis.title = element_text(face = "bold"),
+      panel.grid.minor = element_blank(),
+      plot.margin = margin(10, 60, 10, 10)  # top, right, bottom, left (in pts)
+    )
 }
 
 # Plots precision-recall curve
