@@ -20,25 +20,24 @@
 - `analysis_1_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
 
 2. Analysis 2
-- Logistic regression model. Included features selected based on univariate analysis significance. Trained on 5-year UTI cancer outcome to predict 5-year UGI cancer. 
-- `analysis_2.ipynb` predicts risk for combined UGI cancer 
-- `analysis_2_[subtype].ipynb` predicts risk for the respective cancer subtype 
-- `analysis_2_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
+- Logistic regression model. Included features selected based on univariate analysis significance. 
+- `analysis_2.ipynb` trained on 5-year UGI cancer outcome to predict 5-year UGI cancer. 
+- `analysis_2_[subtype].ipynb` trained on 5-year subtype outcome to predict 5-year subtype outcome. 
+- `analysis_2_all_subtypes.ipynb` predicts risk for 5-year UGI cancer based on the additive risk from each subtype-specific model 
 
-3. Analysis 2.1
-- Logistic regression model. Included features selected based on univariate analysis significance. Trained on 3-year UTI cancer outcome to predict 3-year UGI cancer. 
-- `analysis_2.ipynb` predicts risk for combined UGI cancer 
-- `analysis_2_[subtype].ipynb` predicts risk for the respective cancer subtype 
-- `analysis_2_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
+- `analysis_2.1.ipynb` trained on 3-year UGI cancer outcome to predict 3-year UGI cancer. 
+- `analysis_2.1_[subtype].ipynb` trained on 3-year subtype outcome to predict 3-year subtype outcome. 
+- `analysis_2.1_all_subtypes.ipynb` predicts risk for 3-year UGI cancer based on the additive risk from each subtype-specific model 
 
-4. Analysis 2.2
-- Logistic regression model. Included features selected based on univariate analysis significance. Trained on 10-year UTI cancer outcome to predict 10-year UGI cancer. 
-- `analysis_2.ipynb` predicts risk for combined UGI cancer 
-- `analysis_2_[subtype].ipynb` predicts risk for the respective cancer subtype 
-- `analysis_2_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
+- `analysis_2.2.ipynb` trained on 10-year UGI cancer outcome to predict 10-year UGI cancer. 
+- `analysis_2.2_[subtype].ipynb` trained on 10-year subtype outcome to predict 10-year subtype outcome. 
+- `analysis_2.2_all_subtypes.ipynb` predicts risk for 10-year UGI cancer based on the additive risk from each subtype-specific model 
 
-5. Analysis 2 coef
-- Logistic regression model. Included features selected based on univariate analysis significance. Risk score derived from normalized beta coefficients. 
-- `analysis_2.ipynb` predicts risk for combined UGI cancer 
-- `analysis_2_[subtype].ipynb` predicts risk for the respective cancer subtype 
-- `analysis_2_all_subtypes.ipynb` predicts risk for combined UGI cancer based on the additive risk from each subtype-specific model 
+- `analysis_2_coef.ipynb` predicts risk for combined UGI cancer with risk score derived from normalized beta coefficients. 
+
+3. Analysis 3
+- XGBoost model. Tested three different methods for feature selection and selected the best model by AUROC. 
+- `analysis_3.ipynb` trained on 5-year UGI cancer outcome to predict 5-year UGI cancer. 
+- `analysis_3.1.ipynb` trained on 3-year UGI cancer outcome to predict 3-year UGI cancer. 
+- `analysis_3.2.ipynb` trained on 10-year UGI cancer outcome to predict 10-year UGI cancer. 
+- `analysis_3.3.ipynb` trained on combined UGI cancer outcome to predict 5-year UGI cancer. 
