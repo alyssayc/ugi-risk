@@ -217,9 +217,14 @@ def clean_data(df):
     # Calculate the days between visit_start_date and datetime_dx, and visit_start_date and date_of_death
     df['days_to_dx'] = (df['datetime_dx'] - df['visit_start_date']).dt.days
     df['days_to_death'] = (df['date_of_death'] - df['visit_start_date']).dt.days
+    
+    # Calculate months_to_dx based on days_to_dx
+    df['months_to_dx'] = df['days_to_dx'] / 30.4375
 
     # Create the days_to_event column as the minimum of days_to_dx and days_to_death
-    df['days_to_event'] = df[['days_to_dx', 'days_to_death']].min(axis=1)
+    end_of_study = datetime(2023, 12, 31) # Define the end of the study period
+    df['days_follow_up'] = (end_of_study - df['visit_start_date']).dt.days
+    df['days_to_event'] = df[['days_to_dx', 'days_to_death', 'days_follow_up']].min(axis=1)
     df['months_to_event'] = df['days_to_event'] / 30.4375
 
     return df 
