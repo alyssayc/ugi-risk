@@ -25,7 +25,7 @@ def apply_exclusion_criteria(data_dir, file_list, ugi_file, consort_diagram_numb
         pts_incl.update(df_chunk.pt_id)
 
         # Apply screening age exclusion criteria 
-        excl_age = (df_chunk.age < 40) | (df_chunk.age > 85) # Pts not within proposed screening age of 40-85 
+        excl_age = (df_chunk.age < 40) | (df_chunk.age > 85) | (df_chunk.age.isnull()) # Pts not within proposed screening age of 40-85 or age is null
         num_enc_excl_age += int(excl_age.sum())
         list_chunks.append(df_chunk[~excl_age]) 
 
