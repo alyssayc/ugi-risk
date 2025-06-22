@@ -28,7 +28,7 @@ def get_cancer_subtype(df_row):
     # First, check the site and apply the corresponding subtype checks
     if site == 'esophagus':
         # Check for EAC (Esophageal Adenocarcinoma)
-        if icd_code in range(8140, 8148) or icd_code in [8190, 8201, 8210, 8211, 8213, 8214, 8220, 8221, 8255, 8257] or icd_code in range(8260, 8266) or icd_code in [8310, 8323] or icd_code in range(8450, 8491) or icd_code == 8576:
+        if icd_code in range(8140, 8148) or icd_code in [8050, 8190, 8201, 8210, 8211, 8213, 8214, 8220, 8221, 8255, 8257] or icd_code in range(8260, 8266) or icd_code in [8310, 8323] or icd_code in range(8450, 8491) or icd_code == 8576:
             return "EAC"
         # Check for ESCC (Esophageal Squamous Cell Carcinoma)
         elif icd_code in range(8051, 8087):
@@ -45,7 +45,7 @@ def get_cancer_subtype(df_row):
 
     elif site == 'stomach, noncardia':
         # Check for NCGC (Non-Cardia Gastric Cancer)
-        if icd_code in range(8050, 8087) or icd_code in range(8140, 8148) or icd_code in [8190, 8201, 8210, 8211, 8213, 8214, 8220, 8221, 8255, 8257] or icd_code in range(8260, 8266) or icd_code in [8310, 8323] or icd_code in range(8450, 8491) or icd_code == 8576:
+        if icd_code == 8050 or icd_code in range(8140, 8148) or icd_code in [8190, 8201, 8210, 8211, 8213, 8214, 8220, 8221, 8255, 8257] or icd_code in range(8260, 8266) or icd_code in [8310, 8323] or icd_code in range(8450, 8491) or icd_code == 8576:
             return "NCGC"
         else: 
             return site
@@ -491,6 +491,7 @@ CATEGORICAL_VARS = [
     "diagnosis_year",
     "encounter_type",
 
+    "age_bucket",
     "sex", 
     "sex_missing",
     # "sex_clean",
